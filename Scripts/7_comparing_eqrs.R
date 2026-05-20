@@ -968,3 +968,12 @@ print(as.data.frame(top_diff |>
 write_xlsx(sample_compare,
            "Outputs/7_sample_level_comparison.xlsx")
 cat("Saved: Outputs/7_sample_level_comparison.xlsx\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

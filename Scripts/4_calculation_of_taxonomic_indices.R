@@ -115,7 +115,7 @@ all_lf |>
 all_lf_agg <- all_lf |>
   mutate(
     abundance = ifelse(sampling_method == "hand-picked", 1, abundance),
-    bmwp      = as.numeric(bmwp)
+    bmwp      = as.numeric(BMWP)
   ) |>
   group_by(site_id, year, OTL_taxonname) |>
   summarise(

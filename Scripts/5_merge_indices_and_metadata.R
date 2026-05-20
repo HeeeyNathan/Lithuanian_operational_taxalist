@@ -43,7 +43,7 @@ eqr <- read_excel("Inputs/All_sites_macroinvertebrate_data_long.xlsx",
                    guess_max = 2500) |>
        filter(grepl("^LTR", site_id),
               year >= YEAR_MIN, year <= YEAR_MAX) |>
-       select(1, 2, 6, 19, 20) |>
+       select(1, 4, 6, 19, 20) |>
        distinct()
 
 # Clean LEPA EQR / EQC placeholder values. Source data uses 0 / "0"
@@ -123,7 +123,7 @@ if (length(missing_eqr) > 0) {
   cat(sprintf("WARNING: %d site_code(s) have no EQR/EQC metadata row:\n  %s\n",
               length(missing_eqr), paste(missing_eqr, collapse = ", ")))
 }
-merged <- left_join(merged, eqr, by = c("site_id", "site_code", "year"))
+merged <- left_join(merged, eqr, by = c("site_id", "year", "site_code"))
 
 merged <- merged[!merged$site_code %in% missing_eqr, ]
 
@@ -139,3 +139,12 @@ cat(sprintf("Merged rows: %d | columns: %d\n", nrow(merged), ncol(merged)))
 # ---- Write ----
 write_xlsx(merged, "Outputs/5_merged_indices.xlsx")
 cat("Saved: Outputs/5_merged_indices.xlsx\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

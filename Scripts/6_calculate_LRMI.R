@@ -339,3 +339,12 @@ result <- result[, c(setdiff(names(result), new_cols), new_cols)]
 
 write_xlsx(result, "Outputs/6_LRMI_with_comparison.xlsx")
 cat("Saved: Outputs/6_LRMI_with_comparison.xlsx\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

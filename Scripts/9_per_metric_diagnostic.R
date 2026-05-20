@@ -133,3 +133,12 @@ print(as.data.frame(diag |>
 # ---- Save --------------------------------------------------------
 write_xlsx(diag, "Outputs/9_per_metric_diagnostic.xlsx")
 cat("\nSaved: Outputs/9_per_metric_diagnostic.xlsx\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

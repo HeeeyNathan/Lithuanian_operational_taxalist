@@ -145,3 +145,12 @@ out <- if (exists("attribution") && nrow(attribution) > 0) {
 
 write_xlsx(out, "Outputs/8_DEP_OTL_vs_validated.xlsx")
 cat("Saved: Outputs/8_DEP_OTL_vs_validated.xlsx\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

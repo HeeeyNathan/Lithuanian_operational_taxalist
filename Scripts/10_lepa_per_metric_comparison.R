@@ -419,3 +419,12 @@ write_xlsx(
   "Outputs/10_lepa_per_metric_comparison.xlsx"
 )
 cat("Saved: Outputs/10_lepa_per_metric_comparison.xlsx\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)
