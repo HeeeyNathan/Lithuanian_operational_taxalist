@@ -71,9 +71,7 @@ R version **≥ 4.0.5** (matching the Sidagytė-Copilas & Arbačiauskas
 
 ## Citation
 
-Manuscript in preparation. Please cite the rendered methods document
-([`Pipeline_summary.pdf`](Pipeline_summary.pdf)) until the paper is
-public.
+Manuscript in preparation.
 
 ## Licence
 
