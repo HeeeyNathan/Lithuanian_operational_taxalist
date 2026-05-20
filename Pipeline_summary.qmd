@@ -1,0 +1,604 @@
+---
+title: "LRMI calculation pipeline — methods summary"
+subtitle: "Lithuanian River Macroinvertebrate Index from the Operational Taxalist (OTL)"
+author: "Nathan Baker"
+date: today
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    geometry: margin=2.5cm
+    fontsize: 11pt
+    colorlinks: true
+header-includes:
+  - \usepackage{soulutf8}
+  - \sethlcolor{yellow}
+  # Allow lines and inline code with long underscored identifiers (e.g.
+  # `4_calculation_of_taxonomic_indices_v3.R`) to break across the page
+  # margin rather than running off.
+  - \usepackage[hyphens]{url}
+  - \PassOptionsToPackage{hyphens}{url}
+  - \usepackage{seqsplit}
+  - \setlength{\emergencystretch}{3em}
+  - \sloppy
+  # Replace \texttt with a version that allows word-breaking inside
+  # long backticked identifiers (e.g. inside underscores and dots).
+  # \seqsplit can choke in two situations:
+  #   1. Inside section/subsection headings (moving arguments). Keep
+  #      backticked filenames in body text only; reference them by
+  #      "script N" in headings.
+  #   2. On control sequences like \^{}. Avoid raw `^`, `%`, `$` etc.
+  #      inside backticked code anywhere in the document.
+  - \makeatletter
+  - \let\OldTexttt\texttt
+  - \renewcommand{\texttt}[1]{\OldTexttt{\seqsplit{#1}}}
+  - \makeatother
+---
+
+\noindent *Yellow-highlighted values in this document mark thresholds,
+anchors, counts and other numerical choices that should be verified
+against the source paper, the LEPA reference, or the raw data before
+publication.*
+
+# Purpose and scope
+
+This pipeline takes raw macroinvertebrate sampling data from
+Lithuanian rivers, harmonises taxonomy through a project-specific
+Operational Taxalist (OTL), and recalculates the multimetric
+**Lithuanian River Macroinvertebrate Index (LRMI)** under the EU Water
+Framework Directive (WFD). The recalculated values are then compared
+against the LEPA-published EQRs and EQCs for a curated subset of sites
+to test whether OTL standardisation materially alters the assessment.
+
+The pipeline is implemented as seven core R scripts in `Scripts/`
+(numbered 1–7) plus three diagnostic scripts (8–10) and a
+self-contained HTML decision tree. Inputs sit in `Inputs/`; every
+output is written to `Outputs/` prefixed with the **producing
+script's number** so the mapping is one-to-one (e.g. script 6 writes
+`Outputs/6_LRMI_with_comparison.xlsx`).
+
+**Scope:** all analyses from Stage 4 onwards are restricted to
+\hl{2014–2022}. Pre-2014 LEPA EQRs were calculated using the older
+single-DSFI assessment rather than the LRMI, and including them in
+the comparison would conflate methodological era with taxonomic
+standardisation effects (see Findings, §10).
+
+# Workflow at a glance
+
+| Stage | Script | Purpose |
+|------:|--------|---------|
+| 1 | `1_generate_decision_tree_html_v17.R` | Render decision-tree HTML from editable text blocks |
+| 2 | `2_OTU_assignment_v22.R` | Apply decision tree to assign an OTU to every taxon |
+| 3 | `3_DSFI_calculator_v15.R` | Compute the Danish Stream Fauna Index (DSFI) per sample |
+| 4 | `4_calculation_of_taxonomic_indices.R` | Compute BMWP / ASPT, group richness/abundance, compound indices |
+| 5 | `5_merge_indices_and_metadata.R` | Join DSFI + taxonomic indices + site metadata |
+| 6 | `6_calculate_LRMI.R` | Calculate the LRMI and ecological-quality class per site-year |
+| 7 | `7_comparing_eqrs.R` | Compare LRMI / class against LEPA's published values |
+| 8 | `8_DEP_OTL_vs_validated.R` (diagnostic) | Test whether residual LEPA-vs-LT differences trace to #DEP |
+| 9 | `9_per_metric_diagnostic.R` (diagnostic) | Per-metric breakdown for class-mismatch site-years |
+| 10 | `10_lepa_per_metric_comparison.R` (diagnostic) | Direct head-to-head against LEPA's published per-metric EQRs |
+
+# Stage 1 — Decision-tree design (Script 1)
+
+## Inputs to the design
+
+A Lithuanian aquatic-invertebrate species list was compiled from
+national literature and validated against the GBIF and Molluscabase
+taxonomic backbones. Four specialists (\hl{2} current EPA biomonitoring
+identifiers, \hl{1} former identifier now calculating national EQRs,
+\hl{1} independent researcher) were asked to state, for each species,
+the **coarsest** taxonomic level they could reliably identify it to
+(species / genus / subfamily / family / order / subclass / class /
+phylum).
+
+## Three synchronised representations
+
+To keep the rules transparent and reviewable, the decision tree is
+maintained in three locked-step representations:
+
+- `Outputs/1_OTL_decision_tree_v17_machine_readable.md` — the
+  canonical human-readable specification (plain text,
+  version-controlled).
+- `Outputs/1_OTL_decision_tree_v17.html` — visual flow-chart for
+  non-technical reviewers and supplementary material.
+- The R script `1_generate_decision_tree_html_v17.R` — generates the
+  HTML directly from editable content blocks, so the visual document
+  cannot drift out of sync with the rule text it represents.
+
+Any rule change is made in the `.md` (authoritative) and the R
+generator script in parallel; sourcing the generator re-renders the
+HTML. The four-phase logic below is the content these three
+representations agree on.
+
+## OTU assignment rules
+
+The OTU for each taxon is determined by a four-phase decision tree
+(see `Outputs/1_OTL_decision_tree_v17.html` for the full visual version):
+
+**Phase 1 — Preparation.** Validate names, flag exclusions from EQR
+using the `excluded_taxa` sheet as the source of truth.
+
+**Phase 2 — Forced-level overrides.** A small number of groups receive
+a fixed OTU level regardless of specialist agreement. These taxa
+**skip Phases 3 and 4** entirely. The overrides are:
+
+| Group | Forced level | EQR? | Reason |
+|-------|--------------|------|--------|
+| Entirely excluded groups (all families excluded) | group level | excluded | non-target / non-aquatic / non-macroscopic |
+| Oligochaeta (Naididae) | family | included | DSFI uses Naididae at family (IG6) |
+| Other Oligochaeta | subclass | included | difficult routine identification |
+| Neuroptera (Osmylidae, Sisyridae) | family | included | specialist order-level was too coarse |
+| Stenostomidae | phylum | excluded | order is taxonomically unstable |
+| All other excluded-from-EQR taxa | family | excluded | natural ceiling at family |
+
+Entirely excluded groups:
+
+- Phyla: Porifera, Cnidaria, Nematoda, Nematomorpha, Nemertea, Bryozoa
+- Classes: Polychaeta, Arachnida, Collembola, Maxillopoda, Branchiopoda
+- Orders: Stylommatophora, Dolichomicrostomida, Prolecithophora, Rhabdocoela, Anostraca
+
+**Phase 3 — 100\% specialist agreement.** For each remaining
+species-level taxon, the OTU is set to the **coarsest** level reported
+by any of the four specialists (i.e. the level all four can reach).
+
+**Phase 4 — Metric compliance.** If the Phase-3 level is coarser than
+the minimum required by any downstream metric (DSFI, BMWP, etc.), the
+OTU is overridden to the minimum required level. Overrides are
+documented row-by-row in the output trace.
+
+## Truly-aquatic rule for higher-level entries
+
+Order-and-above entries are retained for EQR calculation only for
+**truly aquatic** groups: Bivalvia (class); Plecoptera,
+Ephemeroptera, Odonata, Megaloptera, Trichoptera (orders). All other
+order+ entries are excluded from EQR (they may include terrestrial
+representatives).
+
+# Stage 2 — OTU assignment (Script 2)
+
+`2_OTU_assignment_v22.R` implements the decision tree above against
+the project's three reference sheets:
+
+- `Specialist_taxalist` — one row per validated species, with each
+  specialist's reported identification level.
+- `OTL_final` — the full universe of taxa (species, genera, families
+  and higher-level entries).
+- `excluded_taxa` — the source of truth for which taxa are excluded
+  from EQR calculations (entirely-excluded groups + individually
+  excluded families/species).
+
+The script outputs an Excel workbook with three sheets:
+
+1. `OTL_final_with_OTU` — every row of `OTL_final` annotated with its
+   assigned OTU name, OTU level, metric group, and EQR-exclusion flag.
+2. `decision_tree_trace` — full per-taxon explanation of which phase
+   triggered, what the agreement level was, and whether a metric
+   override was applied. This is the audit trail for the supplementary
+   material.
+3. `hierarchical_OTL` — a parallel taxalist with fallback entries at
+   every level from phylum down to species, so damaged or juvenile
+   specimens identifiable only to family or order still have a valid
+   OTU.
+
+## Data-quality guard
+
+After reading the input sheets, the script warns when a name appears
+in one sheet but not another. This was added after discovering that a
+typo (`Aelosoma hemprichi` in Specialist\_taxalist vs
+`Aeolosoma hemprichii` in `excluded_taxa`) was silently breaking the
+class-level Polychaeta exclusion.
+
+Output: `Outputs/2_OTU_assignments_v22.xlsx`.
+
+# Stage 3 — DSFI calculation (Script 3)
+
+Implements Skriver et al. (2000) for each sample (site\_code × year).
+The script aggregates abundances to DSFI-relevant taxa, applies
+presence-threshold rules, then walks through six Indicator Groups
+(IG1–IG6) to look up the DSFI value (1–7) in the published Table 2
+matrix.
+
+Key presence rules:
+
+- Kick sample threshold: \hl{≥ 2} individuals for indicator-group
+  determination (Table 2). Hand-picked sample threshold: \hl{≥ 1}.
+  Diversity groups (Table 3) ignore the kick-2 filter — \hl{≥ 1}
+  specimen anywhere is enough.
+- Oligochaeta as a negative diversity group requires \hl{≥ 100}
+  individuals in the kick sample.
+- Indicator-group precluders: Asellus kick \hl{≥ 5} → IG3; Chironomus
+  kick \hl{≥ 5} → IG4; Eristalini kick \hl{≥ 2} → IG6.
+- IG5 lower row used when Oligochaeta kick \hl{≥ 100}.
+- Simuliidae presence at IG5 requires kick \hl{≥ 25} or hand \hl{≥ 1}.
+
+Output: `Outputs/3_DSFI_results_all_sites.xlsx` and a curated
+subset of \hl{95} sites at
+`Outputs/3_DSFI_results_subset.xlsx`.
+
+# Stage 4 — Taxonomic indices (Script 4)
+
+Computes the remaining LRMI inputs and a wider set of community
+metrics from the OTL-standardised data:
+
+- **Total richness, abundance**, Margalef / Shannon / Simpson / Pielou
+  (not all used downstream; retained for completeness).
+- **BMWP and ASPT** — sum of family-level sensitivity scores ÷ number
+  of scoring units. Two scoring exceptions:
+  - *Ancylus* sp. is scored as its own **genus-level** unit (the
+    family Ancylidae was synonymised into Planorbidae but retains a
+    distinct BMWP score).
+  - **Oligochaeta** collapses to a single unit at score \hl{1},
+    regardless of how many oligochaete OTUs are present (Naididae,
+    Tubificidae, Oligochaeta Gen. sp.).
+- **Group richness / abundance** for individual orders (Ephemeroptera,
+  Plecoptera, Diptera, Hemiptera, Crustacea, …) and for compound
+  groups (CrHi, EHP, DEP).
+- **DEP** richness = number of unique Diptera families + number of
+  individual E and P taxa at species level (the LEPA convention).
+- **\%EHP – \%CrHi** = (Σ EHP abundances – Σ CrHi abundances) / total
+  abundance.
+
+## Hand-picked abundance treatment
+
+Kick-sample abundances are kept as raw counts. **Hand-picked
+abundances are coerced to 1 before aggregation** (presence-only) and
+then summed with the kick counts within each
+`site_id × year × OTL_taxonname` group. The rationale is that the
+hand-picked sub-sample is qualitative — it is meant to capture taxa
+that the kick sample may have missed, not to provide quantitative
+density estimates. Treating hand-picked as presence/absence prevents
+the qualitative supplement from skewing abundance-weighted metrics
+(BMWP, \%EHP – \%CrHi, group abundances).
+
+## Year filter
+
+From this stage onwards the analysis is restricted to
+\hl{2014–2022}. The filter is applied at the same point as the
+existing taxon-exclusion filters (`NO MATCH`, `EXCLUDE`, site_code
+prefix `LTR`). Rationale is in Findings (§10).
+
+Output: `Outputs/4_calculated_taxonomic_indices.xlsx`.
+
+# Stage 5 — Merge with site metadata (Script 5)
+
+`5_merge_indices_and_metadata.R` joins:
+
+1. DSFI results on `(site_id, site_code, year)`.
+2. Taxonomic indices on the same key.
+3. **Site metadata** (`site_meta_data` sheet) on `site_id` — static
+   per-site fields: location, waterbody type, river basin, river
+   type, modification state, reference-site flag.
+4. **EQR metadata** (first 20 columns of `clean_macroinvertebrate_data`)
+   on `(site_id, site_code, year)` — sample-level fields including
+   LEPA's published EQR and EQC.
+
+The EQR metadata sheet uses \hl{0} and `"0"` as placeholders for
+"never assessed". These are converted to `NA` at load time, then
+rows with NA in either EQR or EQC are dropped, so all downstream
+comparisons rest on genuine LEPA assessments only.
+
+The same \hl{2014–2022} year filter is applied to DSFI, taxonomic-
+indices, and EQR-metadata inputs on read. The `site_meta_data` sheet
+(static per-site fields, no year column) is not filtered.
+
+Output: `Outputs/5_merged_indices.xlsx`.
+
+# Stage 6 — LRMI calculation (Script 6)
+
+Implements Sidagytė-Copilas & Arbačiauskas (2022).
+
+## The four core metrics and their anchors
+
+For each metric \hl{$i$}: $\text{EQR}_i = (x_i - \text{lower}_i) /
+(\text{ref}_i - \text{lower}_i)$.
+
+| Metric | Reference value | Lower anchor |
+|--------|-----------------|--------------|
+| DSFI | \hl{7} | \hl{1} |
+| ASPT | \hl{7.0} | \hl{1.0} |
+| #DEP | \hl{15} | \hl{0} |
+| \%EHP – \%CrHi | \hl{0.6} | \hl{-1.0} |
+
+## LRMI formula and our strict variant
+
+The published method averages all four EQRs, falling back to the
+remaining three if DSFI fails to key out. **We have chosen to be
+stricter:** if any of the four metrics is `NA`, LRMI is `NA`. This
+avoids reporting an LRMI built on only a subset of metrics.
+
+## Clamping and rounding (project convention)
+
+Per-metric EQRs are kept unclamped and unrounded as internal inputs.
+The final LRMI is then:
+
+1. Computed as the arithmetic mean of the four raw EQRs (`LRMI_raw`).
+2. Clamped at \hl{1} (no LRMI > 1).
+3. Rounded to \hl{2} decimal places (matches LEPA's reported precision).
+
+Both `LRMI_raw` (faithful to the paper) and `LRMI` (display /
+comparison value) are retained in the output.
+
+## Ecological class boundaries
+
+Uniform across all river types, derived from the clamped + rounded
+LRMI (matches LEPA's class-from-rounded-EQR convention):
+
+| Class | Range |
+|-------|-------|
+| High | LRMI \hl{≥ 0.80} |
+| Good | \hl{0.60} ≤ LRMI < \hl{0.80} |
+| Moderate | \hl{0.40} ≤ LRMI < \hl{0.60} |
+| Poor | \hl{0.30} ≤ LRMI < \hl{0.40} |
+| Bad | LRMI < \hl{0.30} |
+
+Type-specific adjustments proposed by Sidagytė-Copilas & Arbačiauskas
+(2022, their Table 5, italic rows) are **not** applied — the uniform
+"Current" boundaries match LEPA's operational practice.
+
+## Natural-waterbody scope
+
+Only sites with `modification_state == "N"` (natural) enter the LRMI
+calculation. Heavily modified or artificial waterbodies use a
+different reference-condition formulation that is out of scope for
+this project.
+
+# Stage 7 — Comparison against LEPA (Script 7)
+
+## Curated comparison subset
+
+A \hl{27}-site subset covering a POOR → HIGH gradient was selected,
+with \hl{2}–\hl{3} samples per site over \hl{2015–2022}
+(\hl{82} site-years total). Sites are distributed across the four
+main Lithuanian catchments and across all five WFD river types.
+
+## What is compared
+
+For each site-year in the subset, the LEPA-published EQR and EQC
+(from the comparison input) are paired with our recalculated LRMI
+and LRMI_class (from Stage 5). Comparisons include:
+
+1. **1:1 scatterplot** of LEPA EQR vs LT-OTL LRMI, coloured by LEPA
+   EQC using the WFD palette, with Pearson correlation.
+2. **Bland–Altman plot** with \hl{95\%} limits of agreement
+   (mean ± \hl{1.96} × SD of differences) to surface systematic bias
+   or wide spread.
+3. **Boxplots by river type**, with horizontal WFD class bands as
+   visual context.
+4. **Sample-level table** with every site-year's signed `eqr_diff`
+   and a boolean `eqc_match` flag, sorted by absolute EQR difference
+   so the largest discrepancies surface at the top. No banded
+   categories are applied; the continuous residual is reported as-is.
+
+## Outputs
+
+- `Outputs/6_LRMI_with_comparison.xlsx` (from Stage 6) — all
+  site-years, full metric breakdown, both raw and clamped+rounded
+  LRMI. Consumed by this stage.
+- `Outputs/7_sample_level_comparison.xlsx` — per-sample table
+  (LEPA vs LT-OTL) for case-by-case investigation, sorted by
+  absolute EQR difference.
+- `Plots/Figure_1.tiff` — map of Lithuanian river sampling sites
+  coloured by latest-year EQC.
+- `Plots/Figure_2.tiff` (script 6) — 1:1 scatter of LEPA EQR vs
+  LT-OTL EQR with WFD class bands.
+- `Plots/Figure_3.tiff` (script 10) — per-metric A/B comparison panel
+  (scatter on top, boxplots on bottom).
+
+The comparison input is also year-filtered to \hl{2014–2022} at read
+time, defensively (the curated subset is already 2015-2022).
+
+# Stage 8 — Diagnostics
+
+Two ad-hoc scripts that don't feed downstream but ground the
+discussion of where LEPA-vs-LT residuals come from.
+
+## DEP-attribution diagnostic (script 8)
+
+Script: `8_DEP_OTL_vs_validated.R`.
+Tests the hypothesis that residual LEPA-vs-LT differences come from
+OTL standardisation collapsing multiple species into a single OTU,
+artificially lowering the #DEP count. For every site-year, DEP is
+recomputed twice — once grouped by `OTL_taxonname` (matches our
+LRMI), once by `taxonname_validated` (pre-OTL). The implied LRMI
+shift from any DEP difference is then compared against the actual
+LEPA-vs-LT residual.
+
+**Headline result:** the correlation between the DEP-implied LRMI
+shift and the actual residual is \hl{0.17} — weak. Mean
+|residual| drops only from \hl{0.0256} to \hl{0.0241} after
+subtracting the DEP-implied shift. **OTL standardisation is not the
+dominant source of LEPA-vs-LT residuals.**
+
+Output: `Outputs/8_DEP_OTL_vs_validated.xlsx`.
+
+## Per-metric diagnostic (script 9)
+
+Script: `9_per_metric_diagnostic.R`.
+For a user-supplied set of site-years (the \hl{46} sites with the
+largest residuals or class-mismatches), the four per-metric EQRs are
+pulled alongside their percentile rank against the full
+natural-waterbody distribution. The metric with the lowest percentile
+is flagged as the most-likely-culprit for each site.
+
+**Headline result:** no single metric dominates. EHP-CrHi is the
+slight leader (\hl{17 / 46} sites flag it as the lowest metric;
+mean percentile \hl{32.7} vs \hl{40–42} for the others), but DSFI,
+ASPT, and DEP each drag down \hl{9–10} sites. \hl{40 / 46}
+residuals are positive (LEPA EQR higher than our LRMI), confirming a
+small systematic downward bias on boundary-region sites; \hl{43 / 46}
+have |residual| ≤ \hl{0.08}, i.e. essentially boundary near-misses.
+
+Output: `Outputs/9_per_metric_diagnostic.xlsx`.
+
+*Note:* this script inferred metric responsibility indirectly from
+percentile rank because LEPA's per-metric EQRs were not yet
+available. Script 10 (below) supersedes that indirect inference
+with a direct LEPA-vs-LT comparison of the same per-metric values.
+
+## LEPA per-metric comparison (script 10)
+
+Script: `10_lepa_per_metric_comparison.R`.
+LEPA's published per-metric EQRs (DSFI, ASPT, #DEP, \%EHP-\%CrHi)
+plus the final LRMI / class are read from `Inputs/LEPA metrics.xlsx`
+(82 curated sites) and joined to our LT-OTL run on `site_code`. For
+each metric the script reports the per-site residual (LEPA − LT-OTL),
+its mean / median / |mean|, Pearson r, and the percentage of
+samples agreeing to within \hl{±0.005}.
+
+**Outputs:**
+
+- `Outputs/10_lepa_per_metric_comparison.xlsx` — four sheets:
+  per-site residuals (`per_site`), raw summary (`summary`), and two
+  publication-ready tables (`publication_distribution`,
+  `publication_residuals`).
+- `Plots/12_lepa_per_metric_panel.tiff` — combined A/B panel:
+  five-panel scatter on top (LEPA vs LT-OTL per metric, with 1:1
+  reference and per-facet Pearson r / p / n) and five-panel boxplot
+  on the bottom (LEPA vs OTL distributions per metric, jittered
+  points overlaid, WFD class bands on the EQR facet).
+
+This is the definitive comparison: it lets the Discussion attribute
+residuals directly to a specific metric rather than inferring it.
+
+# Findings (use to anchor the Results / Discussion text)
+
+These are the headline numerical results the pipeline produces. They
+are the most important values to verify before publication.
+
+1. **2013 is the outlier year, not OTL standardisation.** A
+   per-year breakdown of |LEPA EQR − LT-OTL LRMI| (over \hl{1026}
+   site-years with a valid LEPA EQR) shows 2013 with mean |residual|
+   \hl{0.085} and median \hl{0.057}, against 2014-2022 mean
+   |residual| of \hl{0.011–0.023} and median \hl{0.000–0.010}.
+   Interpretation: LEPA's pre-2014 EQRs were calculated under the
+   old single-DSFI assessment, not the LRMI. Filtering to
+   \hl{2014–2022} produces clean comparison data.
+
+2. **DEP is not the bias source.** Per the diagnostic in §8.1,
+   DEP-implied LRMI shifts correlate only \hl{r = 0.17} with the
+   actual residual. Most of the residual is not explained by OTL
+   collapsing E+P species.
+
+3. **No single metric dominates the bias on boundary sites
+   (indirect inference).** Per §8.2, even the most-often-low metric
+   (EHP-CrHi) accounts for only \hl{37\%} of the 46 worst sites. The
+   bias is distributed across all four metrics. Note: this finding
+   was derived before LEPA's per-metric EQRs were available. The
+   direct head-to-head comparison in §8.3 (script 10) provides the
+   definitive per-metric attribution and should be reported in
+   preference once its numbers are pinned down.
+
+4. **\hl{≈ 95\%} of LRMI-era site-years (2014-2022) agree closely
+   with LEPA.** Median residual \hl{0.01}, mean |residual|
+   \hl{0.014-0.023}. The remaining ~5\% are mostly small
+   class-boundary near-misses.
+
+5. **Per-metric residuals against LEPA — EHP-CrHi carries the gap.**
+   Direct comparison against LEPA's published per-metric EQRs on the
+   \hl{82}-site curated subset (script 10) gives:
+
+   | Metric | n | Mean residual<br>(LEPA − LT-OTL) | Mean \|residual\| | Pearson r | \% within ±0.005 |
+   |--------|--:|--------------------------------:|------------------:|----------:|----------------:|
+   | DSFI | 82 | \hl{−0.008} | \hl{0.016} | \hl{0.981} | \hl{90.2\%} |
+   | ASPT | 82 | \hl{+0.001} | \hl{0.005} | \hl{0.996} | \hl{68.3\%} |
+   | #DEP | 82 | \hl{+0.005} | \hl{0.005} | \hl{0.998} | \hl{93.9\%} |
+   | \%EHP − \%CrHi | 82 | \hl{+0.062} | \hl{0.062} | \hl{0.774} | \hl{35.4\%} |
+   | LRMI (final EQR) | 82 | \hl{+0.015} | \hl{0.018} | \hl{0.991} | \hl{43.9\%} |
+
+   **Interpretation.** Three of the four per-metric EQRs (DSFI, ASPT,
+   #DEP) agree with LEPA at r ≥ \hl{0.98} and mean |residual| ≤
+   \hl{0.016} — essentially identical. The residual on the final LRMI
+   is driven almost entirely by **\%EHP − \%CrHi**: mean residual
+   \hl{+0.062} (LEPA higher), mean |residual| \hl{0.062}, and the only
+   metric with r below \hl{0.99} (r = \hl{0.774}, 35\% within ±0.005).
+   The systematic positive sign means LEPA's EHP-CrHi values run
+   slightly higher than ours, plausibly because the qualitative
+   hand-picked count of crustaceans/hirudineans differs between the
+   two pipelines (LEPA's treatment of hand-picked specimens is not
+   documented in the published data dictionary).
+
+# Decisions worth flagging in Materials & Methods
+
+The following choices deviate from a strict reading of the cited
+papers and should be stated explicitly:
+
+1. **LRMI strict NA rule** — paper averages remaining metrics if DSFI
+   fails; we set LRMI to NA. Effect: \hl{0} samples in our dataset (DSFI always keys out in our data), but worth declaring.
+2. **LRMI clamped at 1 and rounded to \hl{2 dp}** — paper allows
+   values > 1 (their Fig. 5). We match LEPA's reported precision and
+   ceiling.
+3. **Uniform class boundaries** across all river types — type-specific
+   offsets proposed in the paper (Table 5 italic rows) are not used.
+4. **Natural-waterbodies-only scope** — heavily modified waterbodies
+   are excluded from the recalculation.
+5. **Oligochaeta collapse for BMWP** — all oligochaete OTUs are pooled
+   into a single scoring unit at score 1, by OTL_taxonname match
+   (`Oligochaeta Gen. sp.`, `Naididae Gen. sp.`, `Tubificidae Gen. sp.`).
+6. **Ancylus as a genus-level BMWP unit** — preserves the historical
+   Ancylidae score distinct from Planorbidae despite the recent
+   taxonomic synonymy.
+7. **fwe.info comparison removed** — earlier versions of the pipeline
+   compared OTL against a freshwaterecology.info standardisation; this
+   has been dropped from the current paper scope.
+8. **Year filter \hl{2014–2022}** — applied from Stage 4 onwards.
+   LEPA's pre-2014 EQRs were not the LRMI but the older single-DSFI
+   assessment, so including them in the comparison would conflate
+   methodological era with taxonomic-standardisation effects
+   (see Findings §10.1).
+9. **Hand-picked abundance treatment** — Stage 4 coerces hand-picked
+   abundances to 1 before aggregating with kick counts. The
+   hand-picked sub-sample is qualitative (intended to extend the taxon
+   list, not provide density estimates), so contributing it as
+   presence-only prevents the qualitative supplement from biasing the
+   abundance-weighted metrics.
+10. **Non-indigenous species (NIMS)** — invasive taxa are not given
+    any special treatment in this pipeline. The raw taxonomy is too
+    unreliable for a confident NIMS flag, and the OTL collapses many
+    of the most error-prone groups to coarser units anyway; any NIMS
+    correction at this stage would be downstream of the very
+    uncertainty it is trying to address. Sidagytė-Copilas &
+    Arbačiauskas (2022) flag this as a future-work item and apply no
+    NIMS correction themselves; we follow that convention.
+11. **BMWP scores** — the per-family BMWP sensitivity scores are
+    taken from the `BMWP_lookup` sheet in
+    `Inputs/All_sites_macroinvertebrate_data_long.xlsx`, which is the
+    single source of truth for the project. No external published
+    table is consulted at run time.
+12. **Year filter as a hard methodological cut** — the
+    \hl{2014–2022} window is treated as the "operational LRMI era"
+    and is a hard methodological choice. No supplementary comparison
+    over the 2013 transition is reported, because the goal is a
+    like-for-like comparison of OTL standardisation against LEPA's
+    LRMI assessment, not a comparison spanning the change from the
+    pre-2014 single-DSFI assessment.
+13. **Sample-level residual reported as a continuous value** — script
+    7's per-sample comparison table reports `eqr_diff` as a signed
+    continuous residual and `eqc_match` as a boolean class-agreement
+    flag. The earlier coarse magnitude bands (`identical` / `minor` /
+    `moderate` / `large` at 0.05 and 0.10 cutoffs) have been dropped
+    because the thresholds had no external anchor; the continuous
+    residual plus the EQC-match flag captures the same information
+    without imposing arbitrary categorical boundaries.
+
+# Reproducibility notes
+
+- R version: \hl{≥ 4.0.5} (matching the cited paper's environment).
+- Packages: `tidyverse`, `readxl`, `writexl`, `vegan`, `reshape2`,
+  `ggplot2`, `sf`, `ggrepel`, `cowplot`, `rnaturalearth`,
+  `rgeoboundaries`, `ggspatial`.
+- Working directory at run time: the project root containing
+  `Inputs/`, `Outputs/`, `Scripts/`.
+- Scripts are numbered 1–10 matching the producing stage; their
+  outputs are written with the same numeric prefix in `Outputs/` (or
+  `Plots/`). Older versioned scripts (`_v1`, `_v17` etc.) have been
+  retired to `Backup scripts/` and are not part of the live pipeline.
+- The `.gitignore` excludes `Backup scripts/`, `Literature/`, and
+  Claude-related artefacts (`.claude/`, `CLAUDE.md`) from version
+  control.
+
+# Open questions for the author
+
+All items previously flagged here have been resolved during pipeline
+construction and moved into Decisions §9–13. This section is retained
+as a placeholder for any new items that surface during manuscript
+review.

@@ -1,0 +1,28 @@
+# --- Claude / AI assistant artefacts ---------------------------------
+.claude/
+.claude*
+CLAUDE.md
+CLAUDE.local.md
+.anthropic/
+
+# --- Project folders not intended for the public repo ----------------
+Backup scripts/
+Literature/
+
+# --- RStudio / R session cruft ---------------------------------------
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user
+.Rapp.history
+
+# --- Quarto / knitr build artefacts ----------------------------------
+*_files/
+*_cache/
+/.quarto/
+
+# --- OS cruft --------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
