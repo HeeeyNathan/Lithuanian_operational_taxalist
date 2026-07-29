@@ -141,7 +141,7 @@ cmp <- cmp |>
 
 # ---- Per-metric summary table -------------------------------------
 metric_stats <- tibble(
-  metric = c("DSFI", "ASPT", "DEP", "EHP-CrHi", "LRMI"),
+  metric = c("DSFI", "ASPT", "#DEP", "%EHP–%CrHi", "LRMI"),
   lepa_col = c("lepa_DSFI", "lepa_ASPT", "lepa_DEP", "lepa_EHPCrHi", "lepa_LRMI"),
   our_col  = c("our_DSFI",  "our_ASPT",  "our_DEP",  "our_EHPCrHi",  "our_LRMI"),
   res_col  = c("res_DSFI",  "res_ASPT",  "res_DEP",  "res_EHPCrHi",  "res_LRMI")
@@ -171,6 +171,34 @@ stats <- metric_stats |>
 cat("\n--- Per-metric summary (LEPA - LT-OTL) ---\n")
 print(as.data.frame(stats), digits = 3, row.names = FALSE)
 
+# ---- Paired Wilcoxon signed-rank test per metric ------------------
+# Tests whether each metric's value shifts systematically between
+# LEPA and LT-OTL. Same sites are measured under both methods, so
+# the test is paired. We use the non-parametric Wilcoxon signed-rank
+# test because the per-site residuals (LEPA - LT-OTL) are clearly
+# non-normal (heavy zero-spike for DSFI/ASPT/#DEP, right-skewed for
+# %EHP-%CrHi — see Plots/10_metric_residual_histograms.tiff).
+# H0: median residual = 0, i.e. no systematic shift between methods.
+# exact = FALSE uses the asymptotic normal approximation, which
+# copes cleanly with the many tied-at-zero observations.
+paired_tests <- metric_stats |>
+  rowwise() |>
+  mutate(
+    n           = sum(!is.na(cmp[[lepa_col]]) & !is.na(cmp[[our_col]])),
+    median_diff = median(cmp[[res_col]], na.rm = TRUE),
+    W_stat      = unname(suppressWarnings(
+                    wilcox.test(cmp[[lepa_col]], cmp[[our_col]],
+                                paired = TRUE, exact = FALSE)$statistic)),
+    W_p         = suppressWarnings(
+                    wilcox.test(cmp[[lepa_col]], cmp[[our_col]],
+                                paired = TRUE, exact = FALSE)$p.value)
+  ) |>
+  ungroup() |>
+  select(metric, n, median_diff, W_stat, W_p)
+
+cat("\n--- Paired Wilcoxon signed-rank test (LEPA vs LT-OTL, H0: no shift) ---\n")
+print(as.data.frame(paired_tests), digits = 3, row.names = FALSE)
+
 cat(sprintf("\nClass agreement: %d / %d (%.1f%%)\n",
             sum(cmp$class_match, na.rm = TRUE),
             sum(!is.na(cmp$class_match)),
@@ -185,20 +213,20 @@ plot_dat <- cmp |>
   mutate(
     metric = recode(metric,
                     lepa_DSFI = "DSFI", lepa_ASPT = "ASPT",
-                    lepa_DEP = "DEP", lepa_EHPCrHi = "EHP-CrHi",
+                    lepa_DEP = "#DEP", lepa_EHPCrHi = "%EHP–%CrHi",
                     lepa_LRMI = "EQR"),                # v2: LRMI -> EQR
     our_val = case_when(
-      metric == "DSFI"     ~ our_DSFI,
-      metric == "ASPT"     ~ our_ASPT,
-      metric == "DEP"      ~ our_DEP,
-      metric == "EHP-CrHi" ~ our_EHPCrHi,
-      metric == "EQR"      ~ our_LRMI
+      metric == "DSFI"        ~ our_DSFI,
+      metric == "ASPT"        ~ our_ASPT,
+      metric == "#DEP"        ~ our_DEP,
+      metric == "%EHP–%CrHi"  ~ our_EHPCrHi,
+      metric == "EQR"         ~ our_LRMI
     )
   )
 
 plot_dat$metric <- factor(plot_dat$metric,
-                          levels = c("DSFI", "ASPT", "DEP",
-                                     "EHP-CrHi", "EQR"))
+                          levels = c("DSFI", "ASPT", "#DEP",
+                                     "%EHP–%CrHi", "EQR"))
 
 # Re-label the corresponding row in `stats` so its metric column
 # matches the new factor levels in plot_dat (LRMI -> EQR).
@@ -363,6 +391,38 @@ ggsave("Plots/Figure_3.tiff",
        bg = "white", compression = "lzw")
 cat("Saved: Plots/Figure_3.tiff\n")
 
+# ---- Residual histograms (paired-t-test assumption check) ---------
+# One panel per metric showing the distribution of the LEPA - LT-OTL
+# residual. Dashed vertical line at 0 (= no shift). A roughly
+# symmetric, single-peaked distribution centred near 0 supports the
+# paired t-test's normality / no-shift assumptions.
+res_long <- cmp |>
+  select(res_DSFI, res_ASPT, res_DEP, res_EHPCrHi, res_LRMI) |>
+  pivot_longer(everything(), names_to = "metric", values_to = "residual") |>
+  mutate(
+    metric = recode(metric,
+                    res_DSFI    = "DSFI",
+                    res_ASPT    = "ASPT",
+                    res_DEP     = "#DEP",
+                    res_EHPCrHi = "%EHP–%CrHi",
+                    res_LRMI    = "EQR"),
+    metric = factor(metric,
+                    levels = c("DSFI", "ASPT", "#DEP", "%EHP–%CrHi", "EQR"))
+  )
+
+p_hist <- ggplot(res_long, aes(x = residual)) +
+  geom_histogram(bins = 20, fill = "#8E24AA", colour = "black",
+                 alpha = 0.7, linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "darkgray") +
+  facet_wrap(~ metric, nrow = 1, scales = "free") +
+  labs(x = "Residual (LEPA − LT-OTL)", y = "Count") +
+  wfd_theme()
+
+ggsave("Plots/10_metric_residual_histograms.tiff",
+       plot = p_hist, width = 14, height = 3.5, dpi = 450,
+       bg = "white", compression = "lzw")
+cat("Saved: Plots/10_metric_residual_histograms.tiff\n")
+
 # ---- Publication-ready summary table ------------------------------
 # Cleanly named, rounded, with per-method central tendency + dispersion
 # alongside the head-to-head residual stats. Drop straight into a
@@ -413,6 +473,7 @@ write_xlsx(
   list(
     per_site                  = out,
     summary                   = stats,
+    paired_tests              = paired_tests,
     publication_distribution  = method_summary,
     publication_residuals     = residual_summary
   ),

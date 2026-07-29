@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision tree used for assigning operational taxonomic units (OTUs)</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Segoe UI", system-ui, sans-serif; background: #f8f7f4; color: #2c2c2a; padding: 32px 48px; }
+h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; text-align: center; }
+h2 { font-size: 14px; font-weight: 400; color: #5f5e5a; margin-bottom: 24px; text-align: center; }
+.tree { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.box { border-radius: 8px; padding: 12px 20px; text-align: center; font-size: 13px; line-height: 1.55; border: 1.5px solid; }
+.box b { font-weight: 600; }
+.header { background: #2c2c2a; color: #f1efe8; border-color: #2c2c2a; font-weight: 600; font-size: 13.5px; }
+.process { background: #e6f1fb; border-color: #85b7eb; color: #0c447c; }
+.decision { background: #faeeda; border-color: #ef9f27; color: #633806; }
+.outcome { background: #eaf3de; border-color: #97c459; color: #27500a; font-weight: 600; }
+.override { background: #fcebeb; border-color: #f09595; color: #791f1f; }
+.note { background: #eeedfe; border-color: #afa9ec; color: #3c3489; font-size: 12px; }
+.min-req { background: #fff8e6; border: 1.5px dashed #d4a017; color: #633806; font-size: 12px; text-align: left; }
+.ad { width: 2px; height: 22px; background: #888780; margin: 0 auto; position: relative; }
+.ad::after { content:""; position:absolute; bottom:-5px; left:-4px; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid #888780; }
+.section { margin: 40px 0 16px; padding: 10px 18px; background: #f1efe8; border-left: 4px solid #888780; font-size: 14px; font-weight: 600; color: #444441; width: 100%; max-width: 1100px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 16px 0 28px; font-size: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.ls { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); }
+.ls.dashed { border: 2px dashed #d4a017; background: #fff8e6; }
+table.branches { border-collapse: separate; border-spacing: 24px 0; margin: 0 auto; }
+table.branches td { vertical-align: top; padding: 0; }
+table.branches2 { border-collapse: separate; border-spacing: 16px 0; margin: 0 auto; }
+table.branches2 td { vertical-align: top; padding: 0; }
+table.branches3 { border-collapse: separate; border-spacing: 12px 0; margin: 0 auto; }
+table.branches3 td { vertical-align: top; padding: 0; }
+.branch-cell { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.bl { font-size: 12px; font-weight: 700; color: #5f5e5a; text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 0; text-align: center; }
+.footnote { max-width: 1100px; margin: 28px auto 0; font-size: 12.5px; color: #5f5e5a; line-height: 1.7; }
+.footnote b { color: #2c2c2a; }
+.sp { height: 10px; }
+.center { display: flex; flex-direction: column; align-items: center; }
+.ref-table { width: 100%; font-size: 11.5px; border-collapse: collapse; }
+.ref-table th { padding: 6px 6px; text-align: left; border-bottom: 2px solid #d4a017; font-weight: 700; }
+.ref-table td { padding: 5px 6px; vertical-align: top; border-bottom: 1px solid #e8d8a0; }
+.ref-table tr:last-child td { border-bottom: none; }
+.ref-table td:first-child { font-weight: 600; width: 110px; }
+
+</style>
+</head>
+<body>
+
+<h1>Decision tree used for assigning operational taxonomic units (OTUs)</h1>
+
+<div class="legend">
+  <div class="legend-item"><div class="ls" style="background:#2c2c2a"></div> Preparatory step</div>
+  <div class="legend-item"><div class="ls" style="background:#e6f1fb"></div> Process / action</div>
+  <div class="legend-item"><div class="ls" style="background:#faeeda"></div> Decision</div>
+  <div class="legend-item"><div class="ls" style="background:#eaf3de"></div> OTU assignment</div>
+  <div class="legend-item"><div class="ls" style="background:#fcebeb"></div> Metric compliance override</div>
+  <div class="legend-item"><div class="ls" style="background:#eeedfe"></div> Annotation</div>
+  <div class="legend-item"><div class="ls dashed"></div> Minimum metric requirement</div>
+</div>
+
+<div class="tree">
+
+<div class="section">Phase 1 &mdash; Preparation</div>
+
+<div class="center">
+  <div class="box header" style="width:900px">Compile consolidated list of aquatic macroinvertebrates occurring in Lithuania from literature and other sources</div>
+  <div class="ad"></div>
+  <div class="box header" style="width:900px"> Validate and correct taxonomy against GBIF and Molluscabase backbones</div>
+  <div class="ad"></div>
+  <div class="box header" style="width:900px">Macroinvertebrate identification specialists and practitioners provided validated taxa at the <u>species level</u> and asked to state the taxonomic level to which they can identify each species</div>
+  <div class="ad"></div>
+  <div class="box process" style="width:900px">Flag taxa excluded from EQR calculations. Entirely excluded groups (all families excluded): Porifera, Cnidaria, Nematoda, Nematomorpha, Nemertea, Bryozoa (phyla); Polychaeta, Arachnida, Collembola, Maxillopoda, Branchiopoda (classes); Stylommatophora, Dolichomicrostomida, Prolecithophora, Rhabdocoela, Anostraca (orders). Additional excluded families: Coreidae, Gerridae, Hydrometridae, Mesoveliidae, Veliidae, Chrysomelidae, Curculionidae, Succineidae, Clausiliidae, Geoplanidae, etc. These taxa are retained within the consolidated list but are marked as <b>EXCLUDE</b>.</div>
+  <div class="ad"></div>
+</div>
+
+<div class="section">Phase 2 &mdash; Forced-level assignments</div>
+
+<div class="center">
+  <div class="box process" style="width:900px">Taxa whose OTU level is <b>fixed regardless of specialist agreement</b>. These taxa <b>skip Phases 3 and 4</b> &mdash; the Phase 4 metric-compliance check is not applied to forced-level entries. Phase 2 acts as a <b>ceiling</b> override (caps the OTU level).</div>
+  <div class="sp"></div>
+</div>
+
+<table class="branches">
+<tr>
+<td style="width:340px"><div class="branch-cell">  <div class="box override" style="width:320px;font-size:12px"><b>2.1 &mdash; Entirely excluded groups</b><br><br>All families in excluded_taxa &rarr; OTU at group level:<br>&bull; Entirely excluded phyla &rarr; <b>phylum</b> (e.g., Porifera Gen. sp.)<br>&bull; Entirely excluded classes &rarr; <b>class</b> (e.g., Polychaeta Gen. sp.)<br>&bull; Entirely excluded orders &rarr; <b>order</b> (e.g., Stylommatophora Gen. sp.)</div></div></td>
+<td style="width:340px"><div class="branch-cell">  <div class="box outcome" style="width:320px;font-size:12px"><b>2.2 &mdash; Oligochaeta</b><br><br><span style="color:#27500a"><b>NOT excluded from EQR</b></span><br>&bull; Naididae &rarr; <b>family</b> (Naididae Gen. sp.)<br>&bull; All other Oligochaeta &rarr; <b>subclass</b> (Oligochaeta Gen. sp.)<br><span style="font-size:11px">Includes order-level entries: Crassiclitellata, Enchytraeida, Lumbriculida, Tubificida</span></div></div></td>
+<td style="width:340px"><div class="branch-cell">  <div class="box outcome" style="width:320px;font-size:12px"><b>2.3 &mdash; Neuroptera</b><br><br><span style="color:#27500a"><b>NOT excluded from EQR</b></span><br>&bull; All entries forced to <b>family</b><br>&bull; Osmylidae &rarr; Osmylidae Gen. sp.<br>&bull; Sisyridae &rarr; Sisyridae Gen. sp.<br><span style="font-size:11px">Specialist agreement at order was too coarse</span></div></div></td>
+</tr>
+</table>
+
+<div style="height:24px"></div>
+
+<table class="branches">
+<tr>
+<td style="width:340px"><div class="branch-cell">  <div class="box override" style="width:320px;font-size:12px"><b>2.4 &mdash; Stenostomidae</b><br><br>Excluded from EQR<br>Forced to <b>phylum</b> &rarr; Platyhelminthes Gen. sp.<br><span style="font-size:11px">Order taxonomically unavailable</span></div></div></td>
+<td style="width:340px"><div class="branch-cell">  <div class="box override" style="width:320px;font-size:12px"><b>2.5 &mdash; Individually excluded taxa</b><br><br>Excluded from EQR<br>Any taxon excluded but NOT in an entirely excluded group &rarr; <b>family</b> level<br><span style="font-size:11px">Talitridae, non-Asellidae Isopoda, Neomysis/Praunus, Crangonidae/Palaemonidae, Hemiptera excl. families, Lepidoptera excl. families, etc.</span></div></div></td>
+</tr>
+</table>
+
+<div class="section">Phase 3 &mdash; 100% specialist agreement (species-level entries only)</div>
+
+<div class="center">
+  <div class="box process" style="width:900px">For each <b>species-level</b> taxon not assigned in Phase 2, determine the <b>100% specialist agreement level</b> &mdash; the <b>coarsest</b> level assigned by any specialist. In other words, no specialist&rsquo;s assessment is discarded.</div>
+  <div class="ad"></div>
+  <div class="box outcome" style="width:500px">Assign OTU at the <b>100% agreement level</b></div>
+</div>
+
+<div class="section">Higher-level entries &mdash; genus, family, and above</div>
+
+<div class="center">
+  <div class="box process" style="width:900px">Family, order, subclass, class, and phylum entries are structural fallback entries. They accommodate damaged, juvenile, or poorly preserved specimens and are always assigned at their own taxonomic level.</div>
+  <div class="sp"></div>
+</div>
+
+<table class="branches">
+<tr>
+<td style="width:280px"><div class="branch-cell">  <div class="box outcome" style="width:260px;font-size:12px">Family &rarr; <b>family</b><br><span style="font-weight:400;font-size:11px">e.g., Baetidae Gen. sp.</span></div></div></td>
+<td style="width:280px"><div class="branch-cell">  <div class="box outcome" style="width:260px;font-size:12px">Order &rarr; <b>order</b><br><span style="font-weight:400;font-size:11px">e.g., Ephemeroptera Gen. sp.</span></div></div></td>
+<td style="width:280px"><div class="branch-cell">  <div class="box outcome" style="width:260px;font-size:12px">Subclass / class / phylum &rarr; <b>respective level</b></div></div></td>
+</tr>
+</table>
+
+<div class="center" style="margin-top:16px">
+  <div class="box process" style="width:900px"><b>Truly aquatic rule (order+ entries):</b> Only truly aquatic groups keep order-and-above entries for EQR calculations: Bivalvia (class), Plecoptera, Ephemeroptera, Odonata, Megaloptera, Trichoptera (orders). All other groups&rsquo; order+ entries are excluded from EQR.</div>
+</div>
+
+<div class="center" style="margin-top:16px">
+  <div class="box process" style="width:900px"><b>Genus entries</b> are metric-minimum-aware, capped at genus. The metric minimum is determined by the genus&rsquo;s own taxonomy (group, family), NOT inherited from species-level BMWP exceptions:<br>&bull; If the genus has a <b>forced-level override</b> (Phase 2) &rarr; resolves to the forced level (e.g., Talitridae genus &rarr; Talitridae Gen. sp.)<br>&bull; If the minimum is <b>genus or finer</b> &rarr; genus entry stays at <b>genus</b> level (e.g., <i>Leuctra</i> sp. &mdash; Plecoptera min = genus)<br>&bull; If the minimum is <b>coarser than genus</b> &rarr; genus entry resolves to that coarser level (e.g., <i>Baetis</i> &rarr; Baetidae Gen. sp. &mdash; Ephemeroptera min = family)<br>&bull; If <b>no metric group</b> &rarr; genus entry defaults to <b>genus</b> level<br>&bull; Genus entries in <b>entirely excluded groups</b> collapse to the group-level OTU</div>
+</div>
+
+<div class="center" style="margin-top:16px">
+  <div class="box note" style="width:900px"><b>Subspecies entries</b> (e.g., <i>Nemoura cinerea</i> subsp. <i>cinerea</i>) that are not present in the Specialist_taxalist <b>inherit their OTU assignment from the parent species</b>. This prevents subspecies from collapsing to a coarser fallback level when the parent species has a known specialist agreement.</div>
+</div>
+
+<div class="section">Phase 4 &mdash; Metric compliance check (species-level entries only, applied after Phase 3)</div>
+
+<div class="center">
+  <div class="box process" style="width:900px">For each species-level taxon, verify that the OTU level from Phase 3 meets or exceeds the minimum identification requirement for its group (based on the LRMI reference table). If the taxon&rsquo;s group has no specific metric requirement, this check is automatically passed.</div>
+  <div class="ad"></div>
+  <div class="box decision" style="width:600px">Does the assigned OTU level meet or exceed the minimum metric requirement?</div>
+</div>
+
+<table class="branches">
+<tr>
+<td style="width:360px">
+<div class="branch-cell">
+<div class="bl">Yes</div>
+  <div class="box outcome" style="width:340px">OTU assignment is <b>confirmed</b>.</div>
+</div>
+</td>
+</tr>
+</table>
+
+<div class="section">Final output</div>
+
+<div class="center">
+  <div class="box outcome" style="width:900px;font-size:13.5px"><b>Final OTL entry for each taxon:</b><br>Validated name &middot; OTU level &middot; OTU name (e.g., <i>Baetis</i> sp. / Baetidae Gen. sp.) &middot; Taxonomic rank &middot; DSFI and index exclusion flags (if applicable)<br><span style="font-weight:400;font-size:12px">Hierarchical entries (both fine-resolution OTUs and coarser fallback entries) coexist in the taxalist, accommodating damaged, juvenile, or poorly preserved specimens.</span></div>
+</div>
+
+<div class="section">Reference table &mdash; Minimum metric requirements by group</div>
+
+<div class="center">
+  <div class="box min-req" style="width:1100px; line-height:1.6">
+    <table class="ref-table">
+      <tr>
+        <th style="width:110px">Group</th>
+        <th style="width:260px">DSFI requirement</th>
+        <th style="width:340px">BMWP/ASPT (all scored taxa)</th>
+        <th style="width:150px">Other metrics</th>
+        <th style="width:170px">Resulting minimum</th>
+      </tr>
+      <tr>
+        <td>Malacostraca</td>
+        <td><i>Asellus</i>, <i>Gammarus</i> at <b>genus</b> (IG + diversity)</td>
+        <td>Score 8: Astacidae [f]. Score 6: Gammaridae [f], Corophiidae [f], Crangonyctidae [f], Niphargidae [f], Pontogammaridae [f]. Score 3: Asellidae [f].<br><span style="font-size:10.5px;color:#791f1f">Excluded taxa (Talitridae, non-Asellidae Isopoda, Neomysis/Praunus, Crangonidae/Palaemonidae) &rarr; family level, excl. EQR.</span></td>
+        <td>%CrHi pools Malacostraca</td>
+        <td><b>Genus</b> for <i>Asellus</i>, <i>Gammarus</i>; <b>family</b> for others</td>
+      </tr>
+      <tr>
+        <td>Gastropoda</td>
+        <td><i>Ancylus</i>, <i>Lymnaea</i> at <b>genus</b> (diversity)</td>
+        <td>Score 6: Viviparidae [f], Neritidae [f], Ancylidae [f], <i>Ancylus</i> [g], Acroloxidae [f]. Score 5: Hydrobiidae [f]. Score 3: Lymnaeidae [f], Physidae [f], Planorbidae [f], Valvatidae [f], Bithyniidae [f].</td>
+        <td>&mdash;</td>
+        <td><b>Genus</b> for <i>Ancylus</i>, <i>Lymnaea</i>; <b>family</b> for others</td>
+      </tr>
+      <tr>
+        <td>Bivalvia</td>
+        <td><i>Sphaerium</i> at <b>genus</b> (diversity)</td>
+        <td>Score 6: Unionidae [f]. Score 3: Sphaeriidae [f].</td>
+        <td>&mdash;</td>
+        <td><b>Genus</b> for <i>Sphaerium</i>; <b>family</b> for others</td>
+      </tr>
+      <tr>
+        <td>Plecoptera</td>
+        <td>13 genera at <b>genus</b> (IG1/IG2). Families: Leuctridae, Capniidae, Perlodidae, Perlidae, Chloroperlidae (IG1); Taeniopterygidae, Nemouridae (IG2).</td>
+        <td>Score 10: Taeniopterygidae [f], Leuctridae [f], Perlodidae [f], Perlidae [f], Chloroperlidae [f], Capniidae [f]. Score 7: Nemouridae [f].</td>
+        <td>#DEP: species</td>
+        <td>At least <b>genus</b></td>
+      </tr>
+      <tr>
+        <td>Ephemeroptera</td>
+        <td>8 families: Ephemeridae (IG1), Ametropodidae, Ephemerellidae, Heptageniidae, Leptophlebiidae, Siphlonuridae (IG2), Caenidae (IG3), Baetidae (IG5).</td>
+        <td>Score 10: Siphlonuridae [f], Heptageniidae [f], Leptophlebiidae [f], Ephemerellidae [f], Potamanthidae [f], Ephemeridae [f]. Score 7: Caenidae [f]. Score 4: Baetidae [f].</td>
+        <td>#DEP: species</td>
+        <td>At least <b>family</b></td>
+      </tr>
+      <tr>
+        <td>Trichoptera</td>
+        <td><u>Case-bearing</u>: Beraeidae, Brachycentridae, Goeridae, Glossosomatidae, Hydroptilidae, Leptoceridae, Lepidostomatidae, Limnephilidae, Molannidae, Odontoceridae, Phryganeidae, Sericostomatidae. <u>Caseless</u>: Ecnomidae, Hydropsychidae, Philopotamidae, Polycentropodidae, Psychomyiidae, Rhyacophilidae.</td>
+        <td>Score 10: Beraeidae [f], Brachycentridae [f], Goeridae [f], Lepidostomatidae [f], Leptoceridae [f], Molannidae [f], Odontoceridae [f], Phryganeidae [f], Sericostomatidae [f]. Score 8: Ecnomidae [f], Philopotamidae [f], Psychomyiidae [f]. Score 7: Apataniidae [f], Glossosomatidae [f], Limnephilidae [f], Polycentropodidae [f], Rhyacophilidae [f]. Score 6: Hydroptilidae [f]. Score 5: Hydropsychidae [f].</td>
+        <td>&mdash;</td>
+        <td>At least <b>family</b></td>
+      </tr>
+      <tr>
+        <td>Coleoptera</td>
+        <td><i>Elmis</i>, <i>Limnius</i>, <i>Elodes</i> at <b>genus</b> (IG1/IG2 + diversity)</td>
+        <td>Score 5: Haliplidae [f], Hygrobiidae [f], Noteridae [f], Dytiscidae [f], Gyrinidae [f], Hydrophilidae [f], Hydraenidae [f], Hydrochidae [f], Helophoridae [f], Georissidae [f], Clambidae [f], Scirtidae [f], Helodidae [f], Dryopidae [f], Elmidae [f], Chrysomelidae [f], Curculionidae [f].</td>
+        <td>&mdash;</td>
+        <td><b>Genus</b> for <i>Elmis</i>, <i>Limnius</i>, <i>Elodes</i>; <b>family</b> for others</td>
+      </tr>
+      <tr>
+        <td>Diptera</td>
+        <td><i>Chironomus</i> at <b>genus</b>; Eristalinae at <b>subfamily</b>; Simuliidae, Psychodidae, Chironomidae at <b>family</b></td>
+        <td>Score 5: Tipulidae [f], Simuliidae [f], Limoniidae [f], Pediciidae [f], Cylindrotomidae [f]. Score 2: Chironomidae [f].</td>
+        <td>#DEP: family</td>
+        <td><b>Family</b>; <b>genus</b> for <i>Chironomus</i>; <b>subfamily</b> for Eristalinae</td>
+      </tr>
+      <tr>
+        <td>Megaloptera</td>
+        <td><i>Sialis</i> at <b>genus</b> (IG4 + neg. diversity)</td>
+        <td>Score 4: Sialidae [f].</td>
+        <td>&mdash;</td>
+        <td><b>Genus</b> for <i>Sialis</i></td>
+      </tr>
+      <tr>
+        <td>Hirudinea</td>
+        <td><i>Erpobdella</i>, <i>Helobdella</i> at <b>genus</b> (neg. diversity)</td>
+        <td>Score 4: Piscicolidae [f]. Score 3: Glossiphoniidae [f], Hirudinidae [f], Erpobdellidae [f].</td>
+        <td>%CrHi pools Hirudinea</td>
+        <td><b>Genus</b> for <i>Erpobdella</i>, <i>Helobdella</i>; <b>family</b> for others</td>
+      </tr>
+      <tr>
+        <td>Oligochaeta</td>
+        <td>Naididae at <b>family</b> (IG6; formerly Tubificidae); Oligochaeta &ge;100 individuals as precluder</td>
+        <td>Score 1: Oligochaeta [sc], Naididae [f].</td>
+        <td>&mdash;</td>
+        <td>Naididae at <b>family</b>; others at <b>subclass</b></td>
+      </tr>
+      <tr>
+        <td>Hemiptera</td>
+        <td>&mdash;</td>
+        <td>Score 10: Aphelocheiridae [f]. Score 5: Nepidae [f], Naucoridae [f], Notonectidae [f], Pleidae [f], Corixidae [f], Gerridae [f], Hydrometridae [f], Mesoveliidae [f].</td>
+        <td>%EHP pools Hemiptera. Excluded families &rarr; family-level OTU.</td>
+        <td>At least <b>family</b></td>
+      </tr>
+      <tr>
+        <td>Odonata</td>
+        <td>&mdash;</td>
+        <td>Score 8: Lestidae [f], Calopterygidae [f], Gomphidae [f], Cordulegastridae [f], Aeshnidae [f], Corduliidae [f], Libellulidae [f]. Score 6: Coenagrionidae [f], Platycnemididae [f].</td>
+        <td>&mdash;</td>
+        <td>At least <b>family</b></td>
+      </tr>
+      <tr>
+        <td>Turbellaria</td>
+        <td>Tricladida at <b>order</b> (pos. diversity)</td>
+        <td>Score 5: Planariidae [f], Dendrocoelidae [f], Dugesiidae [f].</td>
+        <td>&mdash;</td>
+        <td>At least <b>family</b></td>
+      </tr>
+      <tr>
+        <td>Lepidoptera</td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+        <td>At least <b>family</b></td>
+      </tr>
+      <tr>
+        <td>Neuroptera</td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+        <td>&mdash.</td>
+        <td>At least <b>family</b></td>
+      </tr>
+
+    </table>
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>
