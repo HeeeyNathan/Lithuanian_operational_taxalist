@@ -9,6 +9,13 @@ CLAUDE.local.md
 Backup scripts/
 Literature/
 
+# --- Files distributed separately, not via this repo -----------------
+# Raw macroinvertebrate data (44 MB); obtain from the project maintainer.
+Inputs/All_sites_macroinvertebrate_data_long.xlsx
+# Methods write-up, circulated with the manuscript rather than the code.
+Pipeline_summary.qmd
+Pipeline_summary.pdf
+
 # --- RStudio / R session cruft ---------------------------------------
 .Rproj.user/
 .Rhistory
@@ -26,3 +33,4 @@ Literature/
 .DS_Store
 Thumbs.db
 desktop.ini
+
