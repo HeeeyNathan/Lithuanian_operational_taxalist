@@ -522,3 +522,12 @@ if (!requireNamespace("webshot2", quietly = TRUE)) {
   )
   cat(sprintf("Decision tree PDF  written to: %s\n", pdf_file))
 }
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

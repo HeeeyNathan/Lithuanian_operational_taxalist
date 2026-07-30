@@ -211,12 +211,12 @@
 
 # ---- Load packages ----
 
-required_pkgs <- c("readxl", "dplyr", "stringr", "writexl")
-missing_pkgs <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
-if (length(missing_pkgs) > 0) {
-  message("Installing missing packages: ", paste(missing_pkgs, collapse = ", "))
-  install.packages(missing_pkgs)
-}
+# required_pkgs <- c("readxl", "dplyr", "stringr", "writexl")
+# missing_pkgs <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
+# if (length(missing_pkgs) > 0) {
+#   message("Installing missing packages: ", paste(missing_pkgs, collapse = ", "))
+#   install.packages(missing_pkgs)
+# }
 
 library(readxl)
 library(dplyr)
@@ -225,7 +225,7 @@ library(writexl)
 
 # ---- Configuration ----
 
-input_file  <- "Inputs/LT_operational_taxalist.xlsx"
+input_file  <- "Operational Taxalist (OTL)/Supplement 1 - Operational taxalist.xlsx"
 output_file <- "Outputs/2_OTU_assignments_v23.xlsx"
 
 # Taxonomic level codes and their rank (1 = finest, 8 = coarsest)
@@ -270,7 +270,7 @@ cat(sprintf("  Removed %d duplicate rows (%d -> %d unique taxa)\n",
 # ---- 1.3 Read OTL_final and identify Eristalinae genera ----
 # Note: guess_max must be large enough to detect the subfamily column,
 # which has values only in rows ~2394+ (readxl defaults to guessing from first 1000 rows)
-otl_final_raw <- read_excel(input_file, sheet = "OTL_final", guess_max = 10000)
+otl_final_raw <- read_excel(input_file, sheet = "OTL", guess_max = 10000)
 eristalinae_genera <- otl_final_raw %>%
   filter(subfamily == "Eristalinae") %>%
   pull(`validated_name_GBIF+Molluscabase`) %>%
@@ -1084,7 +1084,7 @@ specialist_output <- spec %>%
 
 cat("\n=== Joining OTU assignments to OTL_final ===\n")
 
-otl_full <- read_excel(input_file, sheet = "OTL_final", guess_max = 10000)
+otl_full <- read_excel(input_file, sheet = "OTL", guess_max = 10000)
 otl_full <- otl_full %>%
   rename(validated_name = `validated_name_GBIF+Molluscabase`,
          original_name  = `original_taxonname_literature+EPA`)
@@ -2598,3 +2598,12 @@ write_xlsx(
 
 cat(sprintf("\nOutput saved to: %s\n", output_file))
 cat("Done.\n")
+
+#==================== CLEAN UP WORKSPACE =====================
+library(pacman)
+rm(list = ls())       # Remove all objects from environment
+gc()                  # Frees up unused memory
+p_unload(all)         # Unload all loaded packages
+graphics.off()        # Close all graphical devices
+cat("\014")           # Clear the console
+# Clear mind :)

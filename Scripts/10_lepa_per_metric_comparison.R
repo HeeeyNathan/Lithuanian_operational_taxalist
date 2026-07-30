@@ -391,37 +391,37 @@ ggsave("Plots/Figure_3.tiff",
        bg = "white", compression = "lzw")
 cat("Saved: Plots/Figure_3.tiff\n")
 
-# ---- Residual histograms (paired-t-test assumption check) ---------
-# One panel per metric showing the distribution of the LEPA - LT-OTL
-# residual. Dashed vertical line at 0 (= no shift). A roughly
-# symmetric, single-peaked distribution centred near 0 supports the
-# paired t-test's normality / no-shift assumptions.
-res_long <- cmp |>
-  select(res_DSFI, res_ASPT, res_DEP, res_EHPCrHi, res_LRMI) |>
-  pivot_longer(everything(), names_to = "metric", values_to = "residual") |>
-  mutate(
-    metric = recode(metric,
-                    res_DSFI    = "DSFI",
-                    res_ASPT    = "ASPT",
-                    res_DEP     = "#DEP",
-                    res_EHPCrHi = "%EHP–%CrHi",
-                    res_LRMI    = "EQR"),
-    metric = factor(metric,
-                    levels = c("DSFI", "ASPT", "#DEP", "%EHP–%CrHi", "EQR"))
-  )
-
-p_hist <- ggplot(res_long, aes(x = residual)) +
-  geom_histogram(bins = 20, fill = "#8E24AA", colour = "black",
-                 alpha = 0.7, linewidth = 0.3) +
-  geom_vline(xintercept = 0, linetype = "dashed", colour = "darkgray") +
-  facet_wrap(~ metric, nrow = 1, scales = "free") +
-  labs(x = "Residual (LEPA − LT-OTL)", y = "Count") +
-  wfd_theme()
-
-ggsave("Plots/10_metric_residual_histograms.tiff",
-       plot = p_hist, width = 14, height = 3.5, dpi = 450,
-       bg = "white", compression = "lzw")
-cat("Saved: Plots/10_metric_residual_histograms.tiff\n")
+# # ---- Residual histograms (paired-t-test assumption check) ---------
+# # One panel per metric showing the distribution of the LEPA - LT-OTL
+# # residual. Dashed vertical line at 0 (= no shift). A roughly
+# # symmetric, single-peaked distribution centred near 0 supports the
+# # paired t-test's normality / no-shift assumptions.
+# res_long <- cmp |>
+#   select(res_DSFI, res_ASPT, res_DEP, res_EHPCrHi, res_LRMI) |>
+#   pivot_longer(everything(), names_to = "metric", values_to = "residual") |>
+#   mutate(
+#     metric = recode(metric,
+#                     res_DSFI    = "DSFI",
+#                     res_ASPT    = "ASPT",
+#                     res_DEP     = "#DEP",
+#                     res_EHPCrHi = "%EHP–%CrHi",
+#                     res_LRMI    = "EQR"),
+#     metric = factor(metric,
+#                     levels = c("DSFI", "ASPT", "#DEP", "%EHP–%CrHi", "EQR"))
+#   )
+#
+# p_hist <- ggplot(res_long, aes(x = residual)) +
+#   geom_histogram(bins = 20, fill = "#8E24AA", colour = "black",
+#                  alpha = 0.7, linewidth = 0.3) +
+#   geom_vline(xintercept = 0, linetype = "dashed", colour = "darkgray") +
+#   facet_wrap(~ metric, nrow = 1, scales = "free") +
+#   labs(x = "Residual (LEPA − LT-OTL)", y = "Count") +
+#   wfd_theme()
+#
+# ggsave("Plots/10_metric_residual_histograms.tiff",
+#        plot = p_hist, width = 14, height = 3.5, dpi = 450,
+#        bg = "white", compression = "lzw")
+# cat("Saved: Plots/10_metric_residual_histograms.tiff\n")
 
 # ---- Publication-ready summary table ------------------------------
 # Cleanly named, rounded, with per-method central tendency + dispersion

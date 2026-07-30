@@ -323,7 +323,7 @@ if ("EQR" %in% names(result)) {
     ) +
     wfd_theme()
 
-  ggsave("Plots/Figure_2_updated.tiff",
+  ggsave("Plots/Figure_2.tiff",
          plot = p,  width = 10, height = 8, dpi = 450, bg = "white", compression = "lzw")
   cat("Saved: Plots/Figure_2.tiff\n")
 }
