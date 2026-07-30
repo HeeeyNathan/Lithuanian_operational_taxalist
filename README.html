@@ -352,8 +352,12 @@ display: none;
 </div>
 
 
-<div id="lrmi-calculation-pipeline-lt-otl" class="section level1">
-<h1>LRMI calculation pipeline (LT-OTL)</h1>
+<div id="lithuanian-operational-taxalist-otl" class="section level1">
+<h1><strong>Lithuanian Operational Taxalist (OTL)</strong></h1>
+<div id="data-and-code-for-standardizing-freshwater-macroinvertebrate-taxonomy-a-lithuanian-operational-taxalist-for-ecological-quality-assessments-and-biodiversity-research." class="section level2">
+<h2><strong>Data and code for:</strong> Standardizing freshwater
+macroinvertebrate taxonomy: a Lithuanian operational taxalist for
+ecological quality assessments and biodiversity research.</h2>
 <p>R-based pipeline that takes raw Lithuanian macroinvertebrate sampling
 data, harmonises taxonomy through a project-specific Operational
 Taxalist (OTL), and recalculates the multimetric <strong>Lithuanian
@@ -361,6 +365,7 @@ River Macroinvertebrate Index (LRMI)</strong> under the EU Water
 Framework Directive (WFD). The recalculated values are then compared
 against LEPA’s published EQRs/EQCs for a curated subset of sites to test
 whether OTL standardisation materially alters the assessment.</p>
+</div>
 <div id="the-operational-taxalist" class="section level2">
 <h2>The Operational Taxalist</h2>
 <p><strong>The OTL is the central output of this work.</strong> It lives
@@ -432,8 +437,8 @@ hierarchy</td>
 <tr class="odd">
 <td><code>Example_dataset</code></td>
 <td align="right">4,874</td>
-<td>A worked example showing raw records through to OTL-standardised
-names</td>
+<td>Worked example with synthetic abundances, raw name →
+OTL-standardised name</td>
 </tr>
 </tbody>
 </table>
@@ -585,12 +590,16 @@ repository. To run it end-to-end you also need:</p>
 </tbody>
 </table>
 <p>The raw macroinvertebrate dataset (~44 MB) is held outside the
-repository.
-<!-- TODO: state the source/contact/DOI for the raw data. --></p>
+repository. It can be requested from the Lithuanian Environmental
+Protection Agency (LEPA):</p>
+<blockquote>
+<p>LEPA. (2024). <em>Lithuanian Environmental Protection Agency.</em> <a href="https://aaa.lrv.lt" class="uri">https://aaa.lrv.lt</a></p>
+</blockquote>
 <p>Readers who do not have the raw dataset can still see the
 standardisation in action: the <code>Example_dataset</code> sheet of the
-OTL workbook carries 4,874 real records from raw taxon name through to
-OTL-standardised name, OTU identifier and index-exclusion flags.</p>
+OTL workbook carries 4,874 fake abundance records from raw taxon name
+through to OTL-standardised name, OTU identifier and index-exclusion
+flags.</p>
 <p>Script 7 currently points at the UETK geodatabase via an
 <strong>absolute local path</strong> (<a href="Scripts/7_comparing_eqrs.R:168"><code>7_comparing_eqrs.R:168</code></a>).
 Change <code>gdb_path</code> to your own copy before running it. The
@@ -627,8 +636,12 @@ taxonomic-standardisation effects.</p>
 <code>sf</code>, <code>ggrepel</code>, <code>cowplot</code>,
 <code>rnaturalearth</code>, <code>rnaturalearthdata</code>,
 <code>rgeoboundaries</code>, <code>ggspatial</code>.</p>
-<p>R version <strong>≥ 4.0.5</strong> (matching the Sidagytė-Copilas
-&amp; Arbačiauskas (2022) reference environment).</p>
+<p>R version <strong>4.5.2</strong>:</p>
+<blockquote>
+<p>R Core Team (2025). <em>R: A Language and Environment for Statistical
+Computing.</em> R Foundation for Statistical Computing, Vienna, Austria.
+<a href="https://www.R-project.org/" class="uri">https://www.R-project.org/</a></p>
+</blockquote>
 </div>
 </div>
 <div id="citation" class="section level2">
@@ -644,6 +657,12 @@ assessments and biodiversity research.</p>
 <!-- TODO: add journal name, year and article DOI once accepted. -->
 <!-- TODO: add the Zenodo DOI badge and software citation after the
      first tagged release is archived. -->
+<p>Machine-readable citation metadata is also provided in <a href="CITATION.cff"><code>CITATION.cff</code></a>.</p>
+</div>
+<div id="funding" class="section level2">
+<h2>Funding</h2>
+<p>This project was funded by the Research Council of Lithuania (LMTLT),
+agreement No. S-MIP-24-61.</p>
 </div>
 <div id="licence" class="section level2">
 <h2>Licence</h2>

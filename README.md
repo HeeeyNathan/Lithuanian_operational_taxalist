@@ -1,4 +1,5 @@
-# LRMI calculation pipeline (LT-OTL)
+# **Lithuanian Operational Taxalist (OTL)**
+## **Data and code for:** Standardizing freshwater macroinvertebrate taxonomy: a Lithuanian operational taxalist for ecological quality assessments and biodiversity research.
 
 R-based pipeline that takes raw Lithuanian macroinvertebrate sampling
 data, harmonises taxonomy through a project-specific Operational
@@ -33,7 +34,7 @@ sheets:
 | `OTU_heirarchy`       | 1,258 | Resulting operational taxonomic units and their full taxonomic hierarchy  |
 | `Specialist_taxalist` | 2,657 | Determinations from four specialists, with agreement flags               |
 | `BMWP_scores`         |   105 | BMWP scores as adapted for Lithuania, mapped to OTL names                 |
-| `Example_dataset`     | 4,874 | A worked example showing raw records through to OTL-standardised names    |
+| `Example_dataset`     | 4,874 | Worked example with synthetic abundances, raw name → OTL-standardised name|
 
 **The `Metadata` sheet is the workbook's own data dictionary** — it
 documents all 129 columns across the other eight sheets, giving each
@@ -110,7 +111,11 @@ repository. To run it end-to-end you also need:
 | UETK geodatabase (`UETK_2024-05-02.gdb`)            | Script 7 (maps)| Lithuanian national water-body register (UETK) |
 
 The raw macroinvertebrate dataset (~44 MB) is held outside the
-repository. <!-- TODO: state the source/contact/DOI for the raw data. -->
+repository. It can be requested from the Lithuanian Environmental
+Protection Agency (LEPA):
+
+> LEPA. (2024). *Lithuanian Environmental Protection Agency.*
+> https://aaa.lrv.lt
 
 Readers who do not have the raw dataset can still see the
 standardisation in action: the `Example_dataset` sheet of the OTL
@@ -150,8 +155,11 @@ conflate methodological era with taxonomic-standardisation effects.
 `ggrepel`, `cowplot`, `rnaturalearth`, `rnaturalearthdata`,
 `rgeoboundaries`, `ggspatial`.
 
-R version **≥ 4.0.5** (matching the Sidagytė-Copilas & Arbačiauskas
-(2022) reference environment).
+R version **4.5.2**:
+
+> R Core Team (2025). *R: A Language and Environment for Statistical
+> Computing.* R Foundation for Statistical Computing, Vienna, Austria.
+> https://www.R-project.org/
 
 ## Citation
 
@@ -166,6 +174,14 @@ accompanying manuscript:
 <!-- TODO: add journal name, year and article DOI once accepted. -->
 <!-- TODO: add the Zenodo DOI badge and software citation after the
      first tagged release is archived. -->
+
+Machine-readable citation metadata is also provided in
+[`CITATION.cff`](CITATION.cff).
+
+## Funding
+
+This project was funded by the Research Council of Lithuania (LMTLT),
+agreement No. S-MIP-24-61.
 
 ## Licence
 
