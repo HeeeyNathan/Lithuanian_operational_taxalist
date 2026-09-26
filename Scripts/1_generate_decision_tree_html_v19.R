@@ -219,7 +219,7 @@ cat(sprintf("Specification OK: %d nodes, %d edges, %d worked examples checked ag
 # 3. LAYOUT AND DRAWING (SVG)
 # ============================================================================
 
-COL_W <- 300; ROW_H <- 134; X0 <- 170; Y0 <- 60
+COL_W <- 310; ROW_H <- 156; X0 <- 175; Y0 <- 60
 default_w <- c(start = 250, process = 270, decision = 240, otu_retained = 250,
                otu_excluded = 250, otu_gap = 250, note = 250)
 default_h <- c(start = 54, process = 76, decision = 104, otu_retained = 66,
@@ -290,22 +290,38 @@ edge_svg <- function(e) {
                        lx, ly, anchor_txt, e$label))
 }
 
-band_svg <- function(p) {
-  x1 <- X0 + p$cols[[1]] * COL_W - COL_W / 2 + 4
-  x2 <- X0 + p$cols[[2]] * COL_W + COL_W / 2 - 4
-  y1 <- Y0 + p$rows[[1]] * ROW_H - ROW_H / 2 + 4
-  y2 <- Y0 + p$rows[[2]] * ROW_H + ROW_H / 2 - 4
+# Phase bands: drawn around their member nodes, with room at the top for
+# the label (top-right corner, clear of the arrows entering on the spine).
+BAND_PAD <- 14; BAND_HEAD <- 27
+bands <- bind_rows(lapply(spec$phases, function(p) {
+  ids <- unlist(p$nodes)
+  if (!all(ids %in% nodes$id)) {
+    stop("Phase band refers to unknown node: ", paste(setdiff(ids, nodes$id), collapse = ", "))
+  }
+  m <- nodes[nodes$id %in% ids, ]
+  tibble(label = p$label,
+         x1 = min(m$x - m$w / 2) - BAND_PAD, x2 = max(m$x + m$w / 2) + BAND_PAD,
+         y1 = min(m$y - m$h / 2) - BAND_HEAD, y2 = max(m$y + m$h / 2) + BAND_PAD)
+}))
+for (i in seq_len(nrow(bands))) for (j in seq_len(nrow(bands))) if (i < j) {
+  a <- bands[i, ]; b <- bands[j, ]
+  if (a$x1 < b$x2 && b$x1 < a$x2 && a$y1 < b$y2 && b$y1 < a$y2) {
+    stop("Phase bands overlap: ", a$label, " / ", b$label)
+  }
+}
+
+band_svg <- function(b) {
   paste0(sprintf('<rect class="band" x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="10"/>',
-                 x1, y1, x2 - x1, y2 - y1),
+                 b$x1, b$y1, b$x2 - b$x1, b$y2 - b$y1),
          sprintf('<text class="blabel" x="%.1f" y="%.1f" text-anchor="end">%s</text>',
-                 x2 - 10, y1 + 14, p$label))
+                 b$x2 - 12, b$y1 + 18, b$label))
 }
 
 chart_svg <- c(
   sprintf('<svg class="chart" xmlns="http://www.w3.org/2000/svg" width="%.0f" height="%.0f" viewBox="0 0 %.0f %.0f">',
           svg_w, svg_h, svg_w, svg_h),
   '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5f5d56"/></marker></defs>',
-  vapply(spec$phases, band_svg, character(1)),
+  vapply(seq_len(nrow(bands)), function(i) band_svg(bands[i, ]), character(1)),
   vapply(seq_len(nrow(edges)), function(i) edge_svg(edges[i, ]), character(1)),
   vapply(seq_len(nrow(nodes)), function(i) paste0(node_shape(nodes[i, ]), node_text(nodes[i, ])), character(1)),
   '</svg>'
@@ -371,7 +387,7 @@ h3 { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
 .li { display: inline-flex; align-items: center; gap: 6px; }
 .chart { display: block; margin: 0 auto; }
 .band { fill: #f4f3ef; stroke: #dcd9cf; stroke-width: 1; }
-.blabel { font-size: 11px; font-weight: 600; fill: #7a776d; letter-spacing: 0.4px; }
+.blabel { font-size: 11.5px; font-weight: 700; fill: #6b6860; letter-spacing: 0.3px; }
 .shape { stroke-width: 1.6; }
 .shape.start { fill: #3d3b36; stroke: #3d3b36; }
 .shape.process { fill: #e6f1fb; stroke: #5b8fc7; }

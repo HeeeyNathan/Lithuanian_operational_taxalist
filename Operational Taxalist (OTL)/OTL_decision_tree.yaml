@@ -67,14 +67,23 @@ legend:
   - {type: otu_gap,      label: "OTU finer than specialist agreement (specialist_gap = TRUE)"}
   - {type: note,         label: "Annotation"}
 
-# Shaded bands grouping nodes into phases (cols and rows inclusive).
+# Shaded bands grouping nodes into phases. Each band is drawn around the
+# nodes it lists (with padding); bands must not overlap.
 phases:
-  - {label: "Phase 1 &mdash; Preparation",         cols: [1, 2], rows: [1, 1]}
-  - {label: "Phase 2 &mdash; Forced levels",       cols: [1, 2], rows: [3, 8]}
-  - {label: "Phase 3 &mdash; Target level",        cols: [0, 2], rows: [9, 9]}
-  - {label: "Phase 4 &mdash; Feasibility check",   cols: [0, 2], rows: [10, 12]}
-  - {label: "Routine identification &mdash; fallback", cols: [1, 3], rows: [13, 15]}
-  - {label: "Higher-level entries",               cols: [3, 4], rows: [2, 6]}
+  - label: "Phase 1 &mdash; Preparation"
+    nodes: [p1]
+  - label: "Phase 2 &mdash; Forced levels"
+    nodes: [d_steno, o_steno, d_exgroup, o_exgroup, d_naid, o_naid, d_oligo, o_oligo,
+            d_neur, o_neur, d_indiv, o_indiv]
+  - label: "Phase 3 &mdash; Target level"
+    nodes: [n_unassessed, p3]
+  - label: "Phase 4 &mdash; Feasibility check"
+    nodes: [d_feas, o_finer, o_equal, o_gap, r_otu]
+  - label: "Routine identification &mdash; fallback"
+    nodes: [d_use, o_use_yes, p_fallback, d_fallback, o_fb_retained, o_fb_excluded]
+  - label: "Higher-level entries"
+    nodes: [h_intro, d_hgenus, o_hgenus, d_hfamily, o_hfamily, d_haquatic,
+            o_haq_retained, o_haq_excluded, n_subspecies]
 
 nodes:
   # ---- Start and Phase 1 -----------------------------------------------------
@@ -195,8 +204,8 @@ nodes:
     type: decision
     col: 1
     row: 10
-    w: 300
-    h: 118
+    w: 340
+    h: 110
     text: >-
       Specialist agreement level (coarsest of the four) compared with the
       target?
