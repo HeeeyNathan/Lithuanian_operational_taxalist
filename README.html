@@ -478,7 +478,7 @@ produce that release’s results.</p>
 <h2>Repository layout</h2>
 <pre><code>.
 ├── Operational Taxalist (OTL)/  The OTL workbook (see above)
-├── Scripts/                     R scripts, numbered 1–10
+├── Scripts/                     R scripts, numbered 1–11
 ├── Inputs/                      Comparison inputs (see Data availability)
 ├── Outputs/                     Script-generated tables (script N → N_*.xlsx)
 ├── Plots/                       Script-generated figures
@@ -556,6 +556,11 @@ kept as manual QA artefacts: <code>3_DSFI_value_checker.xlsx</code> and
 <td><code>10_lepa_per_metric_comparison.R</code> (diagnostic)</td>
 <td>Head-to-head against LEPA’s published per-metric EQRs</td>
 </tr>
+<tr class="odd">
+<td align="right">11</td>
+<td><code>11_feasibility_gap_check.R</code> (diagnostic)</td>
+<td>Specialist feasibility gap and required levels reached in LEPA data</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -616,7 +621,7 @@ this repository.</p>
 working directory is set to the project root.</li>
 <li>Obtain the files listed under <strong>Data availability</strong> and
 place them at the paths shown.</li>
-<li>Source the scripts in numeric order (1 → 10). Each script reads
+<li>Source the scripts in numeric order (1 → 11). Each script reads
 either from <code>Inputs/</code>, from the OTL workbook, or from an
 earlier script’s output in <code>Outputs/</code>, and writes its own
 outputs back to <code>Outputs/</code> (or <code>Plots/</code>).</li>
@@ -657,6 +662,7 @@ assessments and biodiversity research.</p>
 <!-- TODO: add journal name, year and article DOI once accepted. -->
 <!-- TODO: add the Zenodo DOI badge and software citation after the
      first tagged release is archived. -->
+<p>Machine-readable citation metadata is also provided in <a href="CITATION.cff"><code>CITATION.cff</code></a>.</p>
 </div>
 <div id="funding" class="section level2">
 <h2>Funding</h2>

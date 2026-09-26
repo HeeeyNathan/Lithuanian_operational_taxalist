@@ -71,7 +71,7 @@ produce that release's results.
 ```
 .
 ├── Operational Taxalist (OTL)/  The OTL workbook (see above)
-├── Scripts/                     R scripts, numbered 1–10
+├── Scripts/                     R scripts, numbered 1–11
 ├── Inputs/                      Comparison inputs (see Data availability)
 ├── Outputs/                     Script-generated tables (script N → N_*.xlsx)
 ├── Plots/                       Script-generated figures
@@ -99,6 +99,7 @@ manual QA artefacts: `3_DSFI_value_checker.xlsx` and
 | 8     | `8_DEP_OTL_vs_validated.R` (diagnostic)       | Test whether residual LEPA-vs-LT differences trace to #DEP     |
 | 9     | `9_per_metric_diagnostic.R` (diagnostic)      | Per-metric breakdown for class-mismatch site-years             |
 | 10    | `10_lepa_per_metric_comparison.R` (diagnostic)| Head-to-head against LEPA's published per-metric EQRs          |
+| 11    | `11_feasibility_gap_check.R` (diagnostic)     | Specialist feasibility gap and required levels reached in LEPA data |
 
 ## Data availability
 
@@ -137,7 +138,7 @@ circulated with the manuscript rather than through this repository.
    directory is set to the project root.
 2. Obtain the files listed under **Data availability** and place them
    at the paths shown.
-3. Source the scripts in numeric order (1 → 10). Each script reads
+3. Source the scripts in numeric order (1 → 11). Each script reads
    either from `Inputs/`, from the OTL workbook, or from an earlier
    script's output in `Outputs/`, and writes its own outputs back to
    `Outputs/` (or `Plots/`).
@@ -175,6 +176,9 @@ accompanying manuscript:
 <!-- TODO: add journal name, year and article DOI once accepted. -->
 <!-- TODO: add the Zenodo DOI badge and software citation after the
      first tagged release is archived. -->
+
+Machine-readable citation metadata is also provided in
+[`CITATION.cff`](CITATION.cff).
 
 ## Funding
 

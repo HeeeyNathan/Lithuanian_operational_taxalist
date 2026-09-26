@@ -17,6 +17,10 @@
 #   - New output sheet OTL_ids_for_supplement: the script-issued OTL_id for
 #     every row of the workbook's OTL sheet (in sheet order), with a flag
 #     where the workbook's OTL_id differs.
+#   - Feasibility-gap flag: decision_tree_trace and OTL_ids_for_supplement
+#     carry specialist_gap (OTU finer than the level all four specialists
+#     agreed they could reach) and specialist_gap_source (metric
+#     minimum / forced level (Phase 2)).
 #   - The metric group and minimum-level reference table is defined once
 #     (metric_group_for(), min_level_for()) instead of being duplicated for
 #     species and genus entries.
@@ -1099,7 +1103,24 @@ specialist_output <- spec %>%
     excluded_from_EQR, is_eristalinae,
     # Full decision path
     decision_path
-  )
+  ) %>%
+  # Feasibility gap: the final OTU is finer than the level all four
+  # specialists agreed they could reliably reach (Phase 4 metric override,
+  # or a Phase 2 forced level finer than the agreement).
+  mutate(
+    specialist_gap = LEVEL_RANK[final_level] < LEVEL_RANK[agreement_level],
+    specialist_gap_source = case_when(
+      !specialist_gap ~ NA_character_,
+      override        ~ "metric minimum",
+      TRUE            ~ "forced level (Phase 2)"
+    )
+  ) %>%
+  relocate(specialist_gap, specialist_gap_source, .after = OTU_name)
+
+n_gap <- sum(specialist_output$specialist_gap)
+cat(sprintf("  Feasibility gap (OTU finer than specialist agreement): %d / %d species (%.1f%%)\n",
+            n_gap, nrow(specialist_output), 100 * n_gap / nrow(specialist_output)))
+print(table(specialist_output$specialist_gap_source, useNA = "no"))
 
 
 # ============================================================================
@@ -2661,7 +2682,12 @@ otl_ids_for_supplement <- read_excel(input_file, sheet = "OTL", guess_max = 1000
   left_join(script_otu_by_name, by = "validated_name") %>%
   rename(OTL_name_script = OTU_name, OTL_id_script = OTL_id) %>%
   mutate(OTL_id_match = !is.na(OTL_id_manual) & !is.na(OTL_id_script) &
-                        OTL_id_manual == OTL_id_script)
+                        OTL_id_manual == OTL_id_script) %>%
+  # specialist_gap: TRUE/FALSE for specialist-assessed species (duplicate
+  # Specialist_taxalist rows removed); NA for entries not assessed.
+  left_join(specialist_output %>%
+              distinct(validated_name, specialist_gap, specialist_gap_source),
+            by = "validated_name")
 n_id_mismatch <- sum(!otl_ids_for_supplement$OTL_id_match)
 cat(sprintf("  OTL_id QA: %d / %d OTL-sheet rows match the script-issued OTL_id%s\n",
             sum(otl_ids_for_supplement$OTL_id_match), nrow(otl_ids_for_supplement),
