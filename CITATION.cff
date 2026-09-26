@@ -1,0 +1,100 @@
+cff-version: 1.2.0
+message: "If you use this software or the Operational Taxalist, please cite the preferred-citation below."
+type: software
+
+title: "Data to: Standardizing freshwater macroinvertebrate taxonomy: a Lithuanian operational taxalist for ecological quality assessments and biodiversity research"
+
+abstract: >-
+  An R pipeline and accompanying Operational Taxalist (OTL) for
+  standardising freshwater macroinvertebrate taxonomy in Lithuania. The
+  OTL harmonises taxon names across literature and national monitoring
+  sources, and the pipeline recalculates the multimetric Lithuanian
+  River Macroinvertebrate Index (LRMI) under the EU Water Framework
+  Directive, comparing the result against published ecological quality
+  ratios.
+
+# Software authorship (this repository's code) is Nathan Baker alone.
+# Manuscript authorship differs and is listed separately below under
+# preferred-citation, in manuscript order.
+authors:
+  - family-names: "Baker"
+    given-names: "Nathan Jay"
+    orcid: "https://orcid.org/0000-0001-7948-106X"
+    affiliation: >-
+      State Scientific Research Institute Nature Research Centre,
+      Institute of Ecology, Akademijos Str. 2, LT-08412 Vilnius,
+      Lithuania
+
+license: MIT
+repository-code: "https://github.com/HeeeyNathan/Lithuanian_operational_taxalist"
+
+version: "1.0.0"
+# Set at the time of drafting; update to the actual tag date at each
+# tagged release (this does not update itself on push).
+date-released: "2026-07-30"
+
+keywords:
+  - operational taxalist
+  - freshwater macroinvertebrates
+  - taxonomic harmonisation
+  - Water Framework Directive
+  - ecological quality assessment
+  - biomonitoring
+  - Lithuania
+  - LRMI
+
+preferred-citation:
+  type: article
+  title: >-
+    Standardizing freshwater macroinvertebrate taxonomy: a Lithuanian
+    operational taxalist for ecological quality assessments and
+    biodiversity research
+  authors:
+    - family-names: "Osadčaja"
+      given-names: "Diana"
+      orcid: "https://orcid.org/0009-0006-6199-9200"
+      affiliation: >-
+        State Scientific Research Institute Nature Research Centre,
+        Institute of Ecology, Akademijos Str. 2, LT-08412 Vilnius,
+        Lithuania
+    - family-names: "Višinskienė"
+      given-names: "Giedrė"
+      orcid: "https://orcid.org/0009-0005-6222-5947"
+      affiliation: >-
+        State Scientific Research Institute Nature Research Centre,
+        Institute of Ecology, Akademijos Str. 2, LT-08412 Vilnius,
+        Lithuania
+    - family-names: "Solovjova"
+      given-names: "Sabina"
+      affiliation: >-
+        Lithuanian Environmental Protection Agency, A. Juozapavičiaus
+        Str. 9, LT-09311 Vilnius, Lithuania
+    - family-names: "Skyrienė"
+      given-names: "Gintarė"
+      affiliation: >-
+        Lithuanian Environmental Protection Agency, A. Juozapavičiaus
+        Str. 9, LT-09311 Vilnius, Lithuania
+    - family-names: "Baker"
+      given-names: "Nathan Jay"
+      orcid: "https://orcid.org/0000-0001-7948-106X"
+      affiliation: >-
+        State Scientific Research Institute Nature Research Centre,
+        Institute of Ecology, Akademijos Str. 2, LT-08412 Vilnius,
+        Lithuania
+  journal: "Environmental Monitoring and Assessment"
+  # TODO: not yet accepted. Add year, volume, pages and doi once
+  # published — the CFF spec requires `year` for type: article, so this
+  # entry is technically incomplete until then.
+  notes: "Submitted to Environmental Monitoring and Assessment; under review."
+
+references:
+  - type: software
+    title: "R: A Language and Environment for Statistical Computing"
+    version: "4.5.2"
+    authors:
+      - name: "R Core Team"
+    publisher:
+      name: "R Foundation for Statistical Computing"
+      address: "Vienna, Austria"
+    year: 2025
+    url: "https://www.R-project.org/"
