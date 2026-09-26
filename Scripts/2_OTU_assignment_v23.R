@@ -205,13 +205,15 @@
 #   Genus entries: metric-minimum-aware, capped at genus (non-excluded only)
 #   Family and higher-level entries: always at their own level (non-excluded)
 #
-# Input:  LT_operational_taxalist_testing.xlsx
+# Input:  Operational Taxalist (OTL)/Supplement 1 - Operational taxalist.xlsx
 #         - Specialist_taxalist sheet (species assessments)
-#         - OTL_final sheet (full taxalist)
-#         - excluded_taxa sheet (EQR exclusion source of truth)
-# Output: OTU_assignments_v15.xlsx
+#         - OTL sheet (full taxalist)
+#         - Excluded_taxa sheet (EQR exclusion source of truth)
+#         Operational Taxalist (OTL)/OTL_id_registry.csv (OTL_id registry)
+# Output: Outputs/2_OTU_assignments_v23.xlsx
 #
-# Key decisions (documented in OTL_decision_tree_v15_machine_readable.md):
+# Key decisions (the decision tree is documented in
+# Operational Taxalist (OTL)/OTL_decision_tree.yaml, drawn by script 1):
 #   - Naididae (formerly Tubificidae) at family; other Oligochaeta at subclass
 #   - Malacostraca metric group (was "Crustacea"); MAXILLOPODA handled separately
 #   - Eristalinae genera identified from OTL_final subfamily column
