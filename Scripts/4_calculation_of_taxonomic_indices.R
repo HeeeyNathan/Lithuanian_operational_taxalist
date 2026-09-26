@@ -53,8 +53,6 @@
 
 # libraries
 library(vegan)
-library(codyn)
-library(mobr)
 library(reshape2)
 library(dplyr)
 library(readxl)

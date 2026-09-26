@@ -152,8 +152,9 @@ conflate methodological era with taxonomic-standardisation effects.
 ### R dependencies
 
 `tidyverse`, `readxl`, `writexl`, `vegan`, `reshape2`, `ggplot2`, `sf`,
-`ggrepel`, `cowplot`, `rnaturalearth`, `rnaturalearthdata`,
-`rgeoboundaries`, `ggspatial`.
+`ggrepel`, `cowplot`, `viridis`, `rnaturalearth`, `rnaturalearthdata`,
+`rgeoboundaries`, `ggspatial`, `pacman` (used only for end-of-script
+workspace clean-up).
 
 R version **4.5.2**:
 
@@ -174,9 +175,6 @@ accompanying manuscript:
 <!-- TODO: add journal name, year and article DOI once accepted. -->
 <!-- TODO: add the Zenodo DOI badge and software citation after the
      first tagged release is archived. -->
-
-Machine-readable citation metadata is also provided in
-[`CITATION.cff`](CITATION.cff).
 
 ## Funding
 

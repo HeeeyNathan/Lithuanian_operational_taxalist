@@ -1,12 +1,13 @@
 # ============================================================================
-# OTU Assignment Script — Lithuanian Macroinvertebrate Biomonitoring OTL v22 (v2)
+# OTU Assignment Script — Lithuanian Macroinvertebrate Biomonitoring OTL v23
 # ============================================================================
 #
-# This script implements the OTL Decision Tree v16 for assigning Operational
+# This script implements the OTL Decision Tree v18 (rendered by
+# 1_generate_decision_tree_html_v18.R) for assigning Operational
 # Taxonomic Units (OTUs) to Lithuanian aquatic macroinvertebrate species.
-# (No semantic rule changes from v16 — same decision-tree logic.)
+# (Decision-tree logic unchanged since v16; v17 and v18 were wording-only.)
 #
-# Changes from v22 (this is the v2 derivative of v22):
+# Changes from v22:
 #   - Summary sheet now reports how many OTUs were assigned at each phase
 #     of the decision tree. Four new blocks are added to summary_df:
 #       * "Assignments by decision-tree phase (coarse, all OTL_final rows)"
@@ -23,7 +24,7 @@
 #     `assignment_phase_coarse` column on `otl_output`, derived from the
 #     existing `decision_path` text plus a cross-check against the
 #     entirely-excluded phylum / class / order lists.
-#   - Output filename changed to `Outputs/2_OTU_assignments_v22_v2.xlsx`
+#   - Output filename changed to `Outputs/2_OTU_assignments_v23.xlsx`
 #     so v22 outputs are not overwritten.
 #
 # Changes from v20:

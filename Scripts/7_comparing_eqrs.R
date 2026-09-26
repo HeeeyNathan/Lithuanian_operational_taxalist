@@ -17,35 +17,26 @@
 # (Previous fwe.info comparisons have been removed; we are no longer using
 # freshwaterecology.info as a second standardisation reference.)
 #
-# Visual evidence (1:1 scatterplot, Bland-Altman, boxplots by river type)
-# is intended to show whether OTL standardisation materially shifts EQR /
-# EQC values. The expectation is broad agreement with LEPA, supporting the
-# claim that OTL standardisation preserves assessment integrity while
-# reducing human identification error.
+# Active outputs of this script:
+#   - Plots/Figure_1.tiff — map of sampling sites coloured by latest-year EQC.
+#   - Outputs/7_sample_level_comparison.xlsx — per-site-year LEPA vs LT-OTL
+#     EQR / EQC, sorted by absolute EQR difference.
+# The 1:1 scatter is produced by script 6 (Figure_2) and the per-metric
+# panel by script 10 (Figure_3). The earlier Bland-Altman and river-type
+# boxplot sections below are retained but commented out (not in the paper).
 
 # We selected 27 sites covering a gradient from POOR ecological status to HIGH ecological status
-# between 2015 and 2022.We have 2 to 3 replicates per site across the observation period to
+# between 2015 and 2022. We have 2 to 3 replicates per site across the observation period to
 # cover potential temporal variation in the data. Sites are distributed across Lithuania to also
 # capture spatial variation in the data. Sampling sites also cover all four of the main catchments
-# in Lithuania to capture catchment scale variability. Sampling sites are also devided by river
+# in Lithuania to capture catchment scale variability. Sampling sites are also divided by river
 # type to capture type-specific variability.
-
-# The visualizations clearly support your finding that taxonomic standardization with the Lithuanian
-# OTL doesn't significantly impact EQR/EQC calculations. The close alignment between methods on the
-# scatterplots and the minimal differences in the Bland-Altman plots provide strong visual evidence.
-
-# The data shows that taxonomic standardization is indeed a conservative approach, as most measurements
-# remain consistent regardless of methodology. The theory that "water quality is likely better than measured"
-# can be supported by showing the few cases where standardization led to improved ecological class ratings.
 
 #-----------------------------------------------
 # Libraries
 #-----------------------------------------------
 library(tidyverse)
-library(lubridate)
 library(ggplot2)
-library(ggpubr)
-library(scales)
 library(viridis)
 library(cowplot)
 library(ggrepel)

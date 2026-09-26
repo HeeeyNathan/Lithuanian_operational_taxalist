@@ -8,9 +8,10 @@
 # so that an unusually low metric stands out as the likely cause of
 # the LEPA-vs-LT discrepancy.
 #
-# We cannot compare to LEPA per-metric (they only publish the final
-# LRMI). The point is to identify which of our four metrics carries
-# the most weight in pulling each site's LRMI below LEPA's EQR.
+# Written before LEPA's per-metric EQRs were available, so metric
+# responsibility is inferred indirectly (percentile rank). Superseded
+# by script 10, which compares against LEPA's published per-metric
+# EQRs directly; retained as a supporting diagnostic.
 #
 # Input:
 #   - Outputs/6_LRMI_with_comparison.xlsx (script 6 output)

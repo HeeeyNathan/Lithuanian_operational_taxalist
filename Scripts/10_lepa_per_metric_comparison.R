@@ -30,7 +30,7 @@
 #
 # Outputs:
 #   - Outputs/10_lepa_per_metric_comparison.xlsx
-#   - Plots/12_lepa_per_metric_panel.tiff  (combined A/B scatter + boxplot)
+#   - Plots/Figure_3.tiff  (combined A/B scatter + boxplot)
 # ============================================================
 
 library(readxl)
