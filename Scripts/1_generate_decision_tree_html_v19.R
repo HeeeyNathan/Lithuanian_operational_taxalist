@@ -409,7 +409,6 @@ h3 { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
 .tbl.ref td.g { font-weight: 600; width: 105px; }
 .small { font-size: 10.5px; color: #7a3b3b; }
 .fn { font-size: 11.5px; color: #5f5e5a; margin-top: 6px; line-height: 1.5; }
-.gen { font-size: 10.5px; color: #8a877e; margin-top: 18px; text-align: right; }
 '
 page_w <- ceiling(svg_w)
 css <- sub("%WIDTH%", page_w, css, fixed = TRUE)
@@ -426,8 +425,6 @@ html <- c(
   '</div><div class="part part2">',
   examples_html,
   ref_html,
-  sprintf('<p class="gen">Generated from %s (%s) by Scripts/1_generate_decision_tree_html_%s.R on %s.</p>',
-          basename(spec_file), spec$version, spec$version, format(Sys.Date())),
   '</div></div></body></html>'
 )
 
