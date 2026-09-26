@@ -7,6 +7,24 @@
 # Taxonomic Units (OTUs) to Lithuanian aquatic macroinvertebrate species.
 # (Decision-tree logic unchanged since v16; v17 and v18 were wording-only.)
 #
+# Revision during manuscript review (2026-09):
+#   - OTL_id is now stable across runs and owned by the script: IDs are kept
+#     in Operational Taxalist (OTL)/OTL_id_registry.csv (seeded from the IDs
+#     published with the submitted OTL). Existing OTU names keep their ID,
+#     new names get IDs after the highest ever issued, and IDs of OTUs that
+#     no longer occur are retired, never reused. Previously IDs were
+#     renumbered on every run.
+#   - New output sheet OTL_ids_for_supplement: the script-issued OTL_id for
+#     every row of the workbook's OTL sheet (in sheet order), with a flag
+#     where the workbook's OTL_id differs.
+#   - The metric group and minimum-level reference table is defined once
+#     (metric_group_for(), min_level_for()) instead of being duplicated for
+#     species and genus entries.
+#   - OTL entries absent from the Specialist_taxalist (genus/species) now
+#     follow the metric minimum capped at genus, like assessed genus
+#     entries, instead of always defaulting to family (e.g. unassessed
+#     Plecoptera now resolve to "<Genus> sp.").
+#
 # Changes from v22:
 #   - Summary sheet now reports how many OTUs were assigned at each phase
 #     of the decision tree. Four new blocks are added to summary_df:
@@ -228,6 +246,9 @@ library(writexl)
 
 input_file  <- "Operational Taxalist (OTL)/Supplement 1 - Operational taxalist.xlsx"
 output_file <- "Outputs/2_OTU_assignments_v23.xlsx"
+# OTL_id registry: the script's permanent record of every OTL_id ever issued
+# (never edited by hand). Read and updated on every run.
+id_registry_file <- "Operational Taxalist (OTL)/OTL_id_registry.csv"
 
 # Taxonomic level codes and their rank (1 = finest, 8 = coarsest)
 LEVEL_RANK <- c(s = 1, g = 2, sf = 3, f = 4, o = 5, sc = 6, c = 7, p = 8)
@@ -240,6 +261,99 @@ LEVEL_LABEL <- c(
 
 # Helper: convert "NAIDIDAE" -> "Naididae"
 to_proper <- function(x) str_to_title(x)
+
+# ---- Metric group and minimum level (reference table, Table 2) ----
+# Single definition used for specialist-assessed species (Phase 4), genus
+# entries, and OTL entries absent from the Specialist_taxalist.
+# Excluded taxa (excluded = TRUE) have no metric requirements.
+metric_group_for <- function(excluded, subclass, order, class) {
+  case_when(
+    excluded                        ~ NA_character_,
+    subclass == "OLIGOCHAETA"       ~ "Oligochaeta",
+    subclass == "HIRUDINEA"         ~ "Hirudinea",
+    order == "DIPTERA"              ~ "Diptera",
+    class == "MALACOSTRACA"         ~ "Malacostraca",
+    class == "GASTROPODA"           ~ "Gastropoda",
+    class == "BIVALVIA"             ~ "Bivalvia",
+    order == "PLECOPTERA"           ~ "Plecoptera",
+    order == "EPHEMEROPTERA"        ~ "Ephemeroptera",
+    order == "TRICHOPTERA"          ~ "Trichoptera",
+    order == "COLEOPTERA"           ~ "Coleoptera",
+    order == "MEGALOPTERA"          ~ "Megaloptera",
+    order == "HEMIPTERA"            ~ "Hemiptera",
+    order == "ODONATA"              ~ "Odonata",
+    order == "LEPIDOPTERA"          ~ "Lepidoptera",   # v12: freshwater Lepidoptera
+    order == "TRICLADIDA"           ~ "Turbellaria",
+    TRUE                            ~ NA_character_
+  )
+}
+
+min_level_for <- function(metric_group, family, base_genus, is_eristalinae) {
+  case_when(
+    is.na(metric_group) ~ NA_character_,
+
+    # --- Oligochaeta ---
+    # Naididae (formerly Tubificidae) at family; others at subclass
+    metric_group == "Oligochaeta" & family == "NAIDIDAE"  ~ "f",
+    metric_group == "Oligochaeta"                         ~ "sc",
+
+    # --- Hirudinea ---
+    # Erpobdella & Helobdella at genus (DSFI negative diversity); others at family
+    metric_group == "Hirudinea" &
+      base_genus %in% c("Erpobdella", "Helobdella")      ~ "g",
+    metric_group == "Hirudinea"                           ~ "f",
+
+    # --- Diptera ---
+    # Chironomus at genus (DSFI IG precluder);
+    # Eristalinae at subfamily (DSFI IG5/IG6 precluder); others at family
+    metric_group == "Diptera" & base_genus == "Chironomus"  ~ "g",
+    metric_group == "Diptera" & is_eristalinae              ~ "sf",
+    metric_group == "Diptera"                               ~ "f",
+
+    # --- Malacostraca ---
+    # Asellus & Gammarus at genus (DSFI indicator + diversity); others at family
+    # Pontogammaridae at family (BMWP score 6) — no species-level exceptions
+    metric_group == "Malacostraca" &
+      base_genus %in% c("Asellus", "Gammarus")            ~ "g",
+    metric_group == "Malacostraca"                         ~ "f",
+
+    # --- Gastropoda ---
+    # Ancylus & Lymnaea at genus (DSFI diversity); others at family
+    metric_group == "Gastropoda" &
+      base_genus %in% c("Ancylus", "Lymnaea")             ~ "g",
+    metric_group == "Gastropoda"                           ~ "f",
+
+    # --- Bivalvia ---
+    # Sphaerium at genus (DSFI diversity); others at family
+    metric_group == "Bivalvia" & base_genus == "Sphaerium" ~ "g",
+    metric_group == "Bivalvia"                             ~ "f",
+
+    # --- Plecoptera ---
+    # All at genus (DSFI IG1/IG2 entrance; #DEP uses species)
+    metric_group == "Plecoptera"                           ~ "g",
+
+    # --- Coleoptera ---
+    # Elmis, Limnius, Elodes at genus (DSFI IG1/IG2 + diversity); others at family
+    metric_group == "Coleoptera" &
+      base_genus %in% c("Elmis", "Limnius", "Elodes")     ~ "g",
+    metric_group == "Coleoptera"                           ~ "f",
+
+    # --- Megaloptera ---
+    # Sialis at genus (DSFI IG4 + negative diversity)
+    metric_group == "Megaloptera"                          ~ "g",
+
+    # --- Lepidoptera (v12) ---
+    # Freshwater Lepidoptera at family (ensures Crambidae Gen. sp.)
+    metric_group == "Lepidoptera"                          ~ "f",
+
+    # --- All other groups at family ---
+    # Ephemeroptera, Trichoptera, Hemiptera, Odonata, Turbellaria
+    metric_group %in% c("Ephemeroptera", "Trichoptera",
+                         "Hemiptera", "Odonata", "Turbellaria") ~ "f",
+
+    TRUE ~ NA_character_
+  )
+}
 
 # Truly aquatic groups: only these keep order+ entries for EQR calculations.
 # All other groups' order+ entries are excluded because they could include
@@ -698,95 +812,14 @@ cat("\n=== PHASE 4: Metric compliance check ===\n")
 
 spec <- spec %>%
   mutate(
-    metric_group = case_when(
-      excluded_from_EQR               ~ NA_character_,
-      subclass == "OLIGOCHAETA"       ~ "Oligochaeta",
-      subclass == "HIRUDINEA"         ~ "Hirudinea",
-      order == "DIPTERA"              ~ "Diptera",
-      class == "MALACOSTRACA"         ~ "Malacostraca",
-      class == "GASTROPODA"           ~ "Gastropoda",
-      class == "BIVALVIA"             ~ "Bivalvia",
-      order == "PLECOPTERA"           ~ "Plecoptera",
-      order == "EPHEMEROPTERA"        ~ "Ephemeroptera",
-      order == "TRICHOPTERA"          ~ "Trichoptera",
-      order == "COLEOPTERA"           ~ "Coleoptera",
-      order == "MEGALOPTERA"          ~ "Megaloptera",
-      order == "HEMIPTERA"            ~ "Hemiptera",
-      order == "ODONATA"              ~ "Odonata",
-      order == "LEPIDOPTERA"          ~ "Lepidoptera",   # v12: freshwater Lepidoptera
-      order == "TRICLADIDA"           ~ "Turbellaria",
-      TRUE                            ~ NA_character_
-    )
+    metric_group = metric_group_for(excluded_from_EQR, subclass, order, class)
   )
 
 # ---- 4.2 Assign minimum identification level per Phase 2 reference table ----
 
 spec <- spec %>%
   mutate(
-    min_level = case_when(
-      is.na(metric_group) ~ NA_character_,
-
-      # --- Oligochaeta ---
-      # Naididae (formerly Tubificidae) at family; others at subclass
-      metric_group == "Oligochaeta" & family == "NAIDIDAE"  ~ "f",
-      metric_group == "Oligochaeta"                         ~ "sc",
-
-      # --- Hirudinea ---
-      # Erpobdella & Helobdella at genus (DSFI negative diversity); others at family
-      metric_group == "Hirudinea" &
-        base_genus %in% c("Erpobdella", "Helobdella")      ~ "g",
-      metric_group == "Hirudinea"                           ~ "f",
-
-      # --- Diptera ---
-      # Chironomus at genus (DSFI IG precluder);
-      # Eristalinae at subfamily (DSFI IG5/IG6 precluder); others at family
-      metric_group == "Diptera" & base_genus == "Chironomus"  ~ "g",
-      metric_group == "Diptera" & is_eristalinae              ~ "sf",
-      metric_group == "Diptera"                               ~ "f",
-
-      # --- Malacostraca ---
-      # Asellus & Gammarus at genus (DSFI indicator + diversity); others at family
-      # Pontogammaridae at family (BMWP score 6) — no species-level exceptions
-      metric_group == "Malacostraca" &
-        base_genus %in% c("Asellus", "Gammarus")            ~ "g",
-      metric_group == "Malacostraca"                         ~ "f",
-
-      # --- Gastropoda ---
-      # Ancylus & Lymnaea at genus (DSFI diversity); others at family
-      metric_group == "Gastropoda" &
-        base_genus %in% c("Ancylus", "Lymnaea")             ~ "g",
-      metric_group == "Gastropoda"                           ~ "f",
-
-      # --- Bivalvia ---
-      # Sphaerium at genus (DSFI diversity); others at family
-      metric_group == "Bivalvia" & base_genus == "Sphaerium" ~ "g",
-      metric_group == "Bivalvia"                             ~ "f",
-
-      # --- Plecoptera ---
-      # All at genus (DSFI IG1/IG2 entrance; #DEP uses species)
-      metric_group == "Plecoptera"                           ~ "g",
-
-      # --- Coleoptera ---
-      # Elmis, Limnius, Elodes at genus (DSFI IG1/IG2 + diversity); others at family
-      metric_group == "Coleoptera" &
-        base_genus %in% c("Elmis", "Limnius", "Elodes")     ~ "g",
-      metric_group == "Coleoptera"                           ~ "f",
-
-      # --- Megaloptera ---
-      # Sialis at genus (DSFI IG4 + negative diversity)
-      metric_group == "Megaloptera"                          ~ "g",
-
-      # --- Lepidoptera (v12) ---
-      # Freshwater Lepidoptera at family (ensures Crambidae Gen. sp.)
-      metric_group == "Lepidoptera"                          ~ "f",
-
-      # --- All other groups at family ---
-      # Ephemeroptera, Trichoptera, Hemiptera, Odonata, Turbellaria
-      metric_group %in% c("Ephemeroptera", "Trichoptera",
-                           "Hemiptera", "Odonata", "Turbellaria") ~ "f",
-
-      TRUE ~ NA_character_
-    )
+    min_level = min_level_for(metric_group, family, base_genus, is_eristalinae)
   )
 
 # ---- 4.3 Apply Phase 4 override ----
@@ -1259,57 +1292,10 @@ genus_lookup <- spec %>%
     # v10: Compute genus-level metric_group based on taxonomy (same rules as
     # Phase 2, but using genus taxonomy directly). Forced/excluded genera
     # get no metric group.
-    metric_group = case_when(
-      excluded_from_EQR                ~ NA_character_,
-      subclass == "OLIGOCHAETA"        ~ "Oligochaeta",
-      subclass == "HIRUDINEA"          ~ "Hirudinea",
-      order == "DIPTERA"               ~ "Diptera",
-      class == "MALACOSTRACA"          ~ "Malacostraca",
-      class == "GASTROPODA"            ~ "Gastropoda",
-      class == "BIVALVIA"              ~ "Bivalvia",
-      order == "PLECOPTERA"            ~ "Plecoptera",
-      order == "EPHEMEROPTERA"         ~ "Ephemeroptera",
-      order == "TRICHOPTERA"           ~ "Trichoptera",
-      order == "COLEOPTERA"            ~ "Coleoptera",
-      order == "MEGALOPTERA"           ~ "Megaloptera",
-      order == "HEMIPTERA"             ~ "Hemiptera",
-      order == "ODONATA"               ~ "Odonata",
-      order == "LEPIDOPTERA"           ~ "Lepidoptera",   # v12
-      order == "TRICLADIDA"            ~ "Turbellaria",
-      TRUE                             ~ NA_character_
-    ),
+    metric_group = metric_group_for(excluded_from_EQR, subclass, order, class),
     # v10: Compute min_level for the genus based on taxonomy (NOT from species
     # exceptions). Genus entries default to their metric group minimum level.
-    min_level = case_when(
-      is.na(metric_group) ~ NA_character_,
-      metric_group == "Oligochaeta" & family == "NAIDIDAE"  ~ "f",
-      metric_group == "Oligochaeta"                         ~ "sc",
-      metric_group == "Hirudinea" &
-        base_genus %in% c("Erpobdella", "Helobdella")      ~ "g",
-      metric_group == "Hirudinea"                           ~ "f",
-      metric_group == "Diptera" & base_genus == "Chironomus" ~ "g",
-      metric_group == "Diptera" & is_eristalinae             ~ "sf",
-      metric_group == "Diptera"                              ~ "f",
-      # Malacostraca: genus-level exceptions (Asellus, Gammarus at genus);
-      # all others at family (Pontogammaridae at family, BMWP score 6)
-      metric_group == "Malacostraca" &
-        base_genus %in% c("Asellus", "Gammarus")            ~ "g",
-      metric_group == "Malacostraca"                         ~ "f",
-      metric_group == "Gastropoda" &
-        base_genus %in% c("Ancylus", "Lymnaea")             ~ "g",
-      metric_group == "Gastropoda"                           ~ "f",
-      metric_group == "Bivalvia" & base_genus == "Sphaerium" ~ "g",
-      metric_group == "Bivalvia"                             ~ "f",
-      metric_group == "Plecoptera"                           ~ "g",
-      metric_group == "Coleoptera" &
-        base_genus %in% c("Elmis", "Limnius", "Elodes")     ~ "g",
-      metric_group == "Coleoptera"                           ~ "f",
-      metric_group == "Megaloptera"                          ~ "g",
-      metric_group == "Lepidoptera"                          ~ "f",   # v12
-      metric_group %in% c("Ephemeroptera", "Trichoptera",
-                           "Hemiptera", "Odonata", "Turbellaria") ~ "f",
-      TRUE ~ NA_character_
-    ),
+    min_level = min_level_for(metric_group, family, base_genus, is_eristalinae),
     # Cap the metric minimum at genus: if min is finer than genus (i.e., species),
     # use genus. If min is coarser (family, order, subclass), use that coarser level.
     # For forced entries, use forced_level. For excluded groups, use group level.
@@ -1710,6 +1696,22 @@ if (n_unmatched > 0) {
         fallback_excl_grp == "o"  ~ to_proper(order),
         TRUE ~ NA_character_
       ),
+      # Unassessed genus/species entries follow the same metric minimum as
+      # genus entries (reference table, capped at genus), rather than
+      # defaulting to family: e.g. an unassessed Plecoptera species resolves
+      # to "<Genus> sp." because the Plecoptera minimum is genus.
+      fallback_metric_group = ifelse(
+        is.na(OTU_name) & !fallback_forced & is.na(fallback_excl_grp) &
+          entry_type %in% c("species", "genus") & !is.na(genus),
+        metric_group_for(!is.na(family) & family %in% excl_family_pool,
+                         subclass, order, class),
+        NA_character_),
+      fallback_min_level = min_level_for(
+        fallback_metric_group, family, genus,
+        !is.na(family) & family == "SYRPHIDAE" & genus %in% eristalinae_genera),
+      fallback_genus = !is.na(fallback_min_level) &
+        LEVEL_RANK[fallback_min_level] <= LEVEL_RANK["g"],
+      fallback_subfamily = !is.na(fallback_min_level) & fallback_min_level == "sf",
       # Assign OTU for unmatched entries
       OTU_name = case_when(
         !is.na(OTU_name) ~ OTU_name,
@@ -1718,6 +1720,8 @@ if (n_unmatched > 0) {
         fallback_forced & fallback_forced_level == "o" ~ paste0(to_proper(order), " Gen. sp."),
         fallback_forced & fallback_forced_level == "f" ~ paste0(to_proper(family), " Gen. sp."),
         !is.na(fallback_excl_grp) ~ paste0(fallback_excl_name, " Gen. sp."),
+        fallback_genus ~ paste0(genus, " sp."),
+        fallback_subfamily ~ "Eristalinae Gen. sp.",
         !is.na(family) ~ paste0(to_proper(family), " Gen. sp."),
         TRUE ~ OTU_name
       ),
@@ -1725,6 +1729,8 @@ if (n_unmatched > 0) {
         !is.na(final_level) ~ final_level,
         fallback_forced ~ fallback_forced_level,
         !is.na(fallback_excl_grp) ~ fallback_excl_grp,
+        fallback_genus ~ "g",
+        fallback_subfamily ~ "sf",
         !is.na(family) ~ "f",
         TRUE ~ final_level
       ),
@@ -1754,6 +1760,13 @@ if (n_unmatched > 0) {
           fallback_excl_name, ") -> FINAL: ", OTU_name,
           " (", LEVEL_LABEL[final_level], ") [EXCLUDED from EQR]"
         ),
+        fallback_genus | fallback_subfamily ~ paste0(
+          "Not in Specialist_taxalist -> metric_group=", fallback_metric_group,
+          " (min=", LEVEL_LABEL[fallback_min_level],
+          ", capped at genus) -> FINAL: ", OTU_name,
+          " (", LEVEL_LABEL[final_level], ")",
+          ifelse(excluded_from_EQR, " [EXCLUDED from EQR]", "")
+        ),
         !is.na(family) ~ paste0(
           "Not in Specialist_taxalist -> assigned by family context -> FINAL: ",
           OTU_name, " (family)",
@@ -1763,7 +1776,8 @@ if (n_unmatched > 0) {
       )
     ) %>%
     select(-fallback_excl_grp, -fallback_excl_name, -fallback_forced,
-           -fallback_forced_level)
+           -fallback_forced_level, -fallback_metric_group, -fallback_min_level,
+           -fallback_genus, -fallback_subfamily)
 
   unmatched <- otl_full %>%
     filter(str_detect(decision_path, "Not in Specialist_taxalist", negate = FALSE)) %>%
@@ -2187,14 +2201,59 @@ hierarchical_otl <- hierarchical_otl %>%
   mutate(sort_id = row_number()) %>%
   select(sort_id, everything())
 
-# ---- OTL_id: unique sequential ID per distinct OTU_name (v19) ----
+# ---- OTL_id: stable ID per distinct OTU_name ----
 # Rows that share an OTU_name (e.g. multiple class-level rows that all
-# collapse to "Polychaeta Gen. sp.") get the same OTL_id. IDs are
-# assigned in order of first appearance after the complexity sort, so
-# they roughly track phylum-to-species ordering.
+# collapse to "Polychaeta Gen. sp.") get the same OTL_id.
+#
+# IDs are owned by this script via the registry file (id_registry_file),
+# seeded from the IDs published with the submitted OTL. An OTU name keeps
+# the ID it was first issued; OTU names new to this run are issued IDs after
+# the highest ID ever issued, in order of first appearance after the
+# complexity sort. OTUs that no longer occur are marked "retired" and their
+# IDs are never reused (a retired name that reappears gets its old ID back).
+id_registry <- read.csv(id_registry_file, stringsAsFactors = FALSE,
+                        encoding = "UTF-8", check.names = FALSE) %>%
+  mutate(OTL_id = as.integer(OTL_id))
+
+dup_reg_name <- id_registry$OTU_name[duplicated(id_registry$OTU_name)]
+dup_reg_id   <- id_registry$OTL_id[duplicated(id_registry$OTL_id)]
+if (length(dup_reg_name) > 0 || length(dup_reg_id) > 0) {
+  stop("OTL_id registry is not one-to-one between OTU_name and OTL_id: ",
+       paste(unique(c(dup_reg_name, dup_reg_id)), collapse = ", "))
+}
+
+current_otus  <- unique(hierarchical_otl$OTU_name)
+new_otu_names <- setdiff(current_otus, id_registry$OTU_name)
+retired_otus  <- setdiff(id_registry$OTU_name[id_registry$status == "active"],
+                         current_otus)
+revived_otus  <- intersect(id_registry$OTU_name[id_registry$status == "retired"],
+                           current_otus)
+
+id_registry <- id_registry %>%
+  mutate(status = ifelse(OTU_name %in% current_otus, "active", "retired")) %>%
+  bind_rows(tibble(OTL_id       = max(id_registry$OTL_id) + seq_along(new_otu_names),
+                   OTU_name     = new_otu_names,
+                   status       = rep("active", length(new_otu_names)),
+                   first_issued = rep(format(Sys.Date()), length(new_otu_names)))) %>%
+  arrange(OTL_id)
+write.csv(id_registry, id_registry_file, row.names = FALSE, fileEncoding = "UTF-8")
+
 hierarchical_otl <- hierarchical_otl %>%
-  mutate(OTL_id = match(OTU_name, unique(OTU_name))) %>%
+  left_join(id_registry %>% select(OTU_name, OTL_id), by = "OTU_name") %>%
   relocate(OTL_id, .after = sort_id)
+
+cat(sprintf("  OTL_id registry: %d kept, %d new (%s), %d newly retired, %d revived\n",
+            length(setdiff(current_otus, new_otu_names)),
+            length(new_otu_names),
+            if (length(new_otu_names) > 0)
+              paste(sprintf("%s = %d", new_otu_names,
+                            id_registry$OTL_id[match(new_otu_names, id_registry$OTU_name)]),
+                    collapse = "; ")
+            else "none",
+            length(retired_otus), length(revived_otus)))
+if (length(retired_otus) > 0) {
+  cat("    Retired (ID not reused):", paste(retired_otus, collapse = ", "), "\n")
+}
 
 # v20 patch: propagate OTL_id to otl_output too, so every OTL_final
 # row carries the same per-OTU identifier. Joined via the script-
@@ -2586,12 +2645,39 @@ if ("OTL_name" %in% names(otl_full)) {
   qa_otl_final <- tibble()
 }
 
+# ---- OTL_id for the workbook's OTL sheet, in its own row order ----
+# One row per row of the OTL sheet (Excel row number included), carrying the
+# script-issued OTL_id so the column can be pasted straight into the sheet.
+# OTL_id_match flags rows where the workbook's OTL_id differs.
+script_otu_by_name <- otl_full %>%
+  distinct(validated_name, OTU_name) %>%
+  left_join(otu_id_lookup, by = "OTU_name")
+otl_ids_for_supplement <- read_excel(input_file, sheet = "OTL", guess_max = 10000) %>%
+  transmute(excel_row       = row_number() + 1L,
+            original_name   = `original_taxonname_literature+EPA`,
+            validated_name  = `validated_name_GBIF+Molluscabase`,
+            OTL_name_manual = OTL_name,
+            OTL_id_manual   = OTL_id) %>%
+  left_join(script_otu_by_name, by = "validated_name") %>%
+  rename(OTL_name_script = OTU_name, OTL_id_script = OTL_id) %>%
+  mutate(OTL_id_match = !is.na(OTL_id_manual) & !is.na(OTL_id_script) &
+                        OTL_id_manual == OTL_id_script)
+n_id_mismatch <- sum(!otl_ids_for_supplement$OTL_id_match)
+cat(sprintf("  OTL_id QA: %d / %d OTL-sheet rows match the script-issued OTL_id%s\n",
+            sum(otl_ids_for_supplement$OTL_id_match), nrow(otl_ids_for_supplement),
+            if (n_id_mismatch > 0)
+              paste0(" — mismatched Excel rows: ",
+                     paste(otl_ids_for_supplement$excel_row[!otl_ids_for_supplement$OTL_id_match],
+                           collapse = ", "))
+            else ""))
+
 write_xlsx(
   list(
     OTL_final_with_OTU  = otl_output,
     decision_tree_trace = specialist_output,
     hierarchical_OTL    = hierarchical_otl,
     qa_otl_final        = qa_otl_final,
+    OTL_ids_for_supplement = otl_ids_for_supplement,
     summary             = summary_df
   ),
   path = output_file
