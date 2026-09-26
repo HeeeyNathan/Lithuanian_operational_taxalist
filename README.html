@@ -372,7 +372,9 @@ whether OTL standardisation materially alters the assessment.</p>
 in its own top-level folder, deliberately kept separate from the
 pipeline’s working inputs:</p>
 <pre><code>Operational Taxalist (OTL)/
-└── Supplement 1 - Operational taxalist.xlsx</code></pre>
+├── Supplement 1 - Operational taxalist.xlsx   The taxalist (Supplement 1)
+├── OTL_decision_tree.yaml                     The OTU decision tree (Supplement 2), machine-readable
+└── OTL_id_registry.csv                        Every OTL_id ever issued (maintained by script 2)</code></pre>
 <p>This workbook is the authoritative taxonomic reference for the
 project and the document most likely to be revised in future. It
 contains nine sheets:</p>
@@ -392,13 +394,13 @@ contains nine sheets:</p>
 <tbody>
 <tr class="odd">
 <td><code>Metadata</code></td>
-<td align="right">129</td>
+<td align="right">141</td>
 <td>Data dictionary: every column of every sheet, with description and
 type</td>
 </tr>
 <tr class="even">
 <td><code>OTL</code></td>
-<td align="right">3,885</td>
+<td align="right">4,241</td>
 <td>The operational taxa list itself — the core reference</td>
 </tr>
 <tr class="odd">
@@ -415,12 +417,12 @@ keys</td>
 </tr>
 <tr class="odd">
 <td><code>Excluded_taxa</code></td>
-<td align="right">209</td>
+<td align="right">218</td>
 <td>Taxa excluded from OTU assignment</td>
 </tr>
 <tr class="even">
 <td><code>OTU_heirarchy</code></td>
-<td align="right">1,258</td>
+<td align="right">1,274</td>
 <td>Resulting operational taxonomic units and their full taxonomic
 hierarchy</td>
 </tr>
@@ -443,9 +445,9 @@ OTL-standardised name</td>
 </tbody>
 </table>
 <p><strong>The <code>Metadata</code> sheet is the workbook’s own data
-dictionary</strong> — it documents all 129 columns across the other
-eight sheets, giving each column’s name, a plain-language description,
-and its data type. Anyone reusing the OTL should start there.</p>
+dictionary</strong> — it documents every column of the other eight
+sheets, giving each column’s name, a plain-language description, and its
+data type. Anyone reusing the OTL should start there.</p>
 <p>Taxonomic validation follows source-specific authorities: molluscs
 against MolluscaBase; annelids, nematodes and platyhelminthes against
 WoRMS; all other taxa against GBIF. Beyond names, the <code>OTL</code>
@@ -462,6 +464,27 @@ reads three of these sheets — <code>OTL</code>,
 <code>Excluded_taxa</code> and <code>Specialist_taxalist</code>. The
 remaining six are reference and documentation for users of the taxalist
 rather than pipeline inputs.</p>
+<p>OTU identifiers (<code>OTL_id</code>) are issued by script 2, not by
+hand. The script keeps every identifier it has ever issued in
+<code>OTL_id_registry.csv</code>: existing OTUs keep their identifier,
+new OTUs receive the next free one, and identifiers of OTUs that no
+longer occur are retired and never reused. Script 2 writes the
+identifiers (and the <code>specialist_gap</code> flag) for every row of
+the <code>OTL</code> sheet to the <code>OTL_ids_for_supplement</code>
+sheet of its output, ready to paste into the workbook, and reports any
+row where the workbook disagrees.</p>
+<div id="the-decision-tree-supplement-2" class="section level3">
+<h3>The decision tree (Supplement 2)</h3>
+<p>The rules used to assign OTUs are defined in <a href="Operational%20Taxalist%20(OTL)/OTL_decision_tree.yaml"><code>OTL_decision_tree.yaml</code></a>,
+a machine-readable description of the flowchart: its boxes, arrows,
+worked examples and the reference table of minimum levels required by
+the LRMI metrics. Script 1 draws Supplement 2 from this file
+(<code>Outputs/1_OTL_decision_tree_v19.html</code> / <code>.pdf</code>)
+and fills in the branch counts from the outputs of scripts 2 and 11. It
+stops with an error if the counts do not add up or if a worked example
+disagrees with the OTU assigned by script 2, so the figure cannot drift
+from the code. To change the tree, edit the YAML file and re-run script
+1.</p>
 <blockquote>
 <p><strong>Note:</strong> in <code>Example_dataset</code>, the
 <code>note</code> column refers to colour-highlighted cells (green =
@@ -473,6 +496,7 @@ the workbook directly.</p>
 <p>Because the OTL is versioned alongside the code, each tagged release
 of this repository captures the exact state of the taxalist used to
 produce that release’s results.</p>
+</div>
 </div>
 <div id="repository-layout" class="section level2">
 <h2>Repository layout</h2>
@@ -486,9 +510,8 @@ produce that release’s results.</p>
 <p>Each script’s outputs use the producing script’s numeric prefix
 (e.g. script 6 writes
 <code>Outputs/6_LRMI_with_comparison.xlsx</code>).</p>
-<p>Two files in <code>Outputs/</code> are not script-generated and are
-kept as manual QA artefacts: <code>3_DSFI_value_checker.xlsx</code> and
-<code>1_OTL_decision_tree_v18.pdf</code>.</p>
+<p>One file in <code>Outputs/</code> is not script-generated and is kept
+as a manual QA artefact: <code>3_DSFI_value_checker.xlsx</code>.</p>
 </div>
 <div id="pipeline-at-a-glance" class="section level2">
 <h2>Pipeline at a glance</h2>
@@ -508,8 +531,8 @@ kept as manual QA artefacts: <code>3_DSFI_value_checker.xlsx</code> and
 <tbody>
 <tr class="odd">
 <td align="right">1</td>
-<td><code>1_generate_decision_tree_html_v18.R</code></td>
-<td>Render the OTL decision-tree HTML from editable text blocks</td>
+<td><code>1_generate_decision_tree_html_v19.R</code></td>
+<td>Draw the OTU decision tree (Supplement 2) from its YAML file</td>
 </tr>
 <tr class="even">
 <td align="right">2</td>
@@ -559,7 +582,8 @@ kept as manual QA artefacts: <code>3_DSFI_value_checker.xlsx</code> and
 <tr class="odd">
 <td align="right">11</td>
 <td><code>11_feasibility_gap_check.R</code> (diagnostic)</td>
-<td>Specialist feasibility gap and required levels reached in LEPA data</td>
+<td>Specialist feasibility gap and required levels reached in LEPA
+data</td>
 </tr>
 </tbody>
 </table>
@@ -584,7 +608,7 @@ repository. To run it end-to-end you also need:</p>
 <tbody>
 <tr class="odd">
 <td><code>Inputs/All_sites_macroinvertebrate_data_long.xlsx</code></td>
-<td>Scripts 3, 4, 5, 8</td>
+<td>Scripts 3, 4, 5, 8, 11</td>
 <td><em>Not in this repository</em> — see below</td>
 </tr>
 <tr class="even">
@@ -624,7 +648,9 @@ place them at the paths shown.</li>
 <li>Source the scripts in numeric order (1 → 11). Each script reads
 either from <code>Inputs/</code>, from the OTL workbook, or from an
 earlier script’s output in <code>Outputs/</code>, and writes its own
-outputs back to <code>Outputs/</code> (or <code>Plots/</code>).</li>
+outputs back to <code>Outputs/</code> (or <code>Plots/</code>). Script 1
+is the exception: it takes its branch counts from the outputs of scripts
+2 and 11, so after changing the taxalist, re-run script 1 last.</li>
 </ol>
 <div id="year-scope" class="section level3">
 <h3>Year scope</h3>
@@ -638,9 +664,12 @@ taxonomic-standardisation effects.</p>
 <h3>R dependencies</h3>
 <p><code>tidyverse</code>, <code>readxl</code>, <code>writexl</code>,
 <code>vegan</code>, <code>reshape2</code>, <code>ggplot2</code>,
-<code>sf</code>, <code>ggrepel</code>, <code>cowplot</code>, <code>viridis</code>,
-<code>rnaturalearth</code>, <code>rnaturalearthdata</code>,
-<code>rgeoboundaries</code>, <code>ggspatial</code>, <code>pacman</code> (used only for end-of-script workspace clean-up).</p>
+<code>sf</code>, <code>ggrepel</code>, <code>cowplot</code>,
+<code>viridis</code>, <code>rnaturalearth</code>,
+<code>rnaturalearthdata</code>, <code>rgeoboundaries</code>,
+<code>ggspatial</code>, <code>yaml</code> and <code>chromote</code>
+(script 1; the PDF is printed with headless Chrome), <code>pacman</code>
+(used only for end-of-script workspace clean-up).</p>
 <p>R version <strong>4.5.2</strong>:</p>
 <blockquote>
 <p>R Core Team (2025). <em>R: A Language and Environment for Statistical

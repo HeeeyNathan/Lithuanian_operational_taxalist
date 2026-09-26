@@ -1,0 +1,566 @@
+# =============================================================================
+# OTL decision tree — machine-readable specification (Supplement 2)
+# =============================================================================
+# This file is the authoritative definition of the decision tree used to
+# assign operational taxonomic units (OTUs). It is read by
+# Scripts/1_generate_decision_tree_html_v<version>.R, which draws the
+# flowchart (HTML + PDF) from it. Edit the tree HERE, then re-run script 1.
+#
+# The OTU assignment itself is implemented in Scripts/2_OTU_assignment_v23.R.
+# Script 1 cross-checks this file against script 2's output: branch counts
+# must add up and every worked example must match what script 2 assigned,
+# otherwise script 1 stops with an error.
+#
+# Conventions
+#   - Text fields may contain simple HTML (<b>, <i>, <br>).
+#   - {key} inside a text field is replaced by a count computed by script 1
+#     (see the `counts` section for the available keys).
+#   - Node positions are grid cells: col (0-4, left to right), row (0 = top).
+#   - Edge sides: top, bottom, left, right.
+# =============================================================================
+
+version: v19
+title: "Decision tree for assigning operational taxonomic units (OTUs)"
+subtitle: >-
+  Branch counts are species evaluated by the four specialists (n = {n_species_assessed}),
+  higher-level entries of the operational taxalist, or LEPA biomonitoring
+  records 2014&ndash;2022, as labelled.
+
+# Count keys available in text fields (computed by script 1 from
+# Outputs/2_OTU_assignments_v23.xlsx and Outputs/11_feasibility_gap_check.xlsx).
+counts:
+  n_entries:                "unique validated names in the OTL sheet"
+  n_species_entries:        "species-level entries (incl. subspecies)"
+  n_species_assessed:       "species evaluated by the specialists"
+  n_species_unassessed:     "species-level entries not evaluated by the specialists"
+  p2_stenostomidae:         "Phase 2: Stenostomidae"
+  p2_excluded_group:        "Phase 2: entirely excluded phylum, class or order"
+  p2_naididae:              "Phase 2: Naididae"
+  p2_other_oligochaeta:     "Phase 2: other Oligochaeta"
+  p2_neuroptera:            "Phase 2: Neuroptera"
+  p2_individually_excluded: "Phase 2: individually excluded taxa"
+  p2_total:                 "Phase 2: all forced-level species"
+  p34_total:                "species reaching Phases 3 and 4"
+  p4_finer:                 "Phase 4: agreement finer than target"
+  p4_equal:                 "Phase 4: agreement equals target"
+  p4_gap:                   "Phase 4: agreement coarser than target (feasibility gap)"
+  gap_total:                "all species with a feasibility gap (Phase 2 + Phase 4)"
+  h_total:                  "higher-level entries (genus and above)"
+  h_genus:                  "genus entries"
+  h_family:                 "family and subfamily entries"
+  h_orderplus_retained:     "order-and-above entries retained for EQR"
+  h_orderplus_excluded:     "order-and-above entries excluded from EQR"
+  use_records:              "LEPA records in groups with a metric minimum"
+  use_reached:              "records identified at or finer than the minimum"
+  use_reached_pct:          "percentage of records identified at or finer than the minimum"
+  use_below:                "records identified only to a coarser level"
+  use_below_retained:       "coarser records whose fallback OTU is retained"
+  use_below_excluded:       "coarser records whose fallback OTU is excluded"
+
+# Visual node types. Each type has a distinct shape and/or fill.
+legend:
+  - {type: start,        label: "Start / result"}
+  - {type: process,      label: "Action"}
+  - {type: decision,     label: "Decision (yes / no)"}
+  - {type: otu_retained, label: "OTU retained for EQR calculation"}
+  - {type: otu_excluded, label: "OTU excluded from EQR calculation"}
+  - {type: otu_gap,      label: "OTU finer than specialist agreement (specialist_gap = TRUE)"}
+  - {type: note,         label: "Annotation"}
+
+# Shaded bands grouping nodes into phases (cols and rows inclusive).
+phases:
+  - {label: "Phase 1 &mdash; Preparation",         cols: [1, 2], rows: [1, 1]}
+  - {label: "Phase 2 &mdash; Forced levels",       cols: [1, 2], rows: [3, 8]}
+  - {label: "Phase 3 &mdash; Target level",        cols: [0, 2], rows: [9, 9]}
+  - {label: "Phase 4 &mdash; Feasibility check",   cols: [0, 2], rows: [10, 12]}
+  - {label: "Routine identification &mdash; fallback", cols: [1, 3], rows: [13, 15]}
+  - {label: "Higher-level entries",               cols: [3, 4], rows: [2, 6]}
+
+nodes:
+  # ---- Start and Phase 1 -----------------------------------------------------
+  - id: start
+    type: start
+    col: 1
+    row: 0
+    text: "Entry in the consolidated list<br>(n = {n_entries})"
+
+  - id: p1
+    type: process
+    col: 1
+    row: 1
+    w: 300
+    h: 96
+    text: >-
+      Compile the list; validate names (GBIF, MolluscaBase, WoRMS); four
+      specialists state the level to which they can identify each species;
+      flag taxa excluded from EQR calculation (Excluded_taxa)
+
+  - id: d_species
+    type: decision
+    col: 1
+    row: 2
+    text: "Species-level entry?"
+
+  # ---- Phase 2: forced levels (checked in this order) ------------------------
+  - id: d_steno
+    type: decision
+    col: 1
+    row: 3
+    text: "Stenostomidae?"
+  - id: o_steno
+    type: otu_excluded
+    col: 2
+    row: 3
+    text: "Platyhelminthes Gen. sp. (phylum)<br>n = {p2_stenostomidae}"
+
+  - id: d_exgroup
+    type: decision
+    col: 1
+    row: 4
+    text: "In an entirely excluded phylum, class or order?"
+  - id: o_exgroup
+    type: otu_excluded
+    col: 2
+    row: 4
+    text: "OTU at group level (e.g. <i>Porifera</i> Gen. sp.)<br>n = {p2_excluded_group}"
+
+  - id: d_naid
+    type: decision
+    col: 1
+    row: 5
+    text: "Naididae (Oligochaeta)?"
+  - id: o_naid
+    type: otu_retained
+    col: 2
+    row: 5
+    text: "Naididae Gen. sp. (family)<br>n = {p2_naididae}"
+
+  - id: d_oligo
+    type: decision
+    col: 1
+    row: 6
+    text: "Other Oligochaeta?"
+  - id: o_oligo
+    type: otu_retained
+    col: 2
+    row: 6
+    text: "Oligochaeta Gen. sp. (subclass)<br>n = {p2_other_oligochaeta}"
+
+  - id: d_neur
+    type: decision
+    col: 1
+    row: 7
+    text: "Neuroptera?"
+  - id: o_neur
+    type: otu_retained
+    col: 2
+    row: 7
+    text: "Family (Osmylidae, Sisyridae Gen. sp.)<br>n = {p2_neuroptera}"
+
+  - id: d_indiv
+    type: decision
+    col: 1
+    row: 8
+    text: "Individually excluded taxon (Excluded_taxa)?"
+  - id: o_indiv
+    type: otu_excluded
+    col: 2
+    row: 8
+    text: "Family-level OTU<br>n = {p2_individually_excluded}"
+
+  # ---- Phase 3: target level ------------------------------------------------
+  - id: p3
+    type: process
+    col: 1
+    row: 9
+    w: 300
+    h: 80
+    text: >-
+      <b>Target</b> = minimum level required by the LRMI metrics for the
+      taxon&rsquo;s group (Table 2)<br>n = {p34_total}
+
+  - id: n_unassessed
+    type: note
+    col: 0
+    row: 9
+    w: 250
+    h: 92
+    text: >-
+      Species not evaluated by the specialists (n = {n_species_unassessed}):
+      Phase 2 rules apply; otherwise OTU = target, capped at genus
+      (no feasibility check)
+
+  # ---- Phase 4: feasibility check -------------------------------------------
+  - id: d_feas
+    type: decision
+    col: 1
+    row: 10
+    w: 300
+    h: 118
+    text: >-
+      Specialist agreement level (coarsest of the four) compared with the
+      target?
+
+  - id: o_finer
+    type: otu_retained
+    col: 0
+    row: 11
+    text: "OTU at agreement level (finer resolution kept)<br>n = {p4_finer}"
+  - id: o_equal
+    type: otu_retained
+    col: 1
+    row: 11
+    text: "OTU at target (target confirmed)<br>n = {p4_equal}"
+  - id: o_gap
+    type: otu_gap
+    col: 2
+    row: 11
+    text: "OTU at target; <b>specialist_gap = TRUE</b><br>n = {p4_gap}"
+
+  - id: r_otu
+    type: start
+    col: 1
+    row: 12
+    text: "OTU assigned (Supplement 1, OTL sheet)"
+
+  # ---- Routine identification: fallback for specimens -----------------------
+  - id: d_use
+    type: decision
+    col: 1
+    row: 13
+    w: 250
+    h: 118
+    text: "In routine identification: specimen identified to the OTU level?"
+  - id: o_use_yes
+    type: otu_retained
+    col: 1
+    row: 14
+    text: "Record standardized to the OTU<br>{use_reached} of {use_records} records ({use_reached_pct}%)"
+  - id: p_fallback
+    type: process
+    col: 2
+    row: 13
+    text: "Recorded at a coarser level &rarr; hierarchical fallback OTU<br>n = {use_below} records"
+  - id: d_fallback
+    type: decision
+    col: 2
+    row: 14
+    w: 270
+    h: 118
+    text: "Fallback OTU retained? (order and above: truly aquatic groups only)"
+  - id: o_fb_retained
+    type: otu_retained
+    col: 2
+    row: 15
+    text: "Fallback OTU retained<br>n = {use_below_retained} records"
+  - id: o_fb_excluded
+    type: otu_excluded
+    col: 3
+    row: 14
+    text: "Fallback OTU excluded<br>n = {use_below_excluded} records"
+
+  # ---- Higher-level entries -------------------------------------------------
+  - id: h_intro
+    type: process
+    col: 3
+    row: 2
+    w: 270
+    h: 84
+    text: >-
+      Genus-and-above entry: structural fallback for damaged, juvenile or
+      poorly preserved specimens (n = {h_total})
+
+  - id: d_hgenus
+    type: decision
+    col: 3
+    row: 3
+    text: "Genus entry?"
+  - id: o_hgenus
+    type: otu_retained
+    col: 4
+    row: 3
+    h: 96
+    text: >-
+      Group minimum, capped at genus (e.g. <i>Leuctra</i> sp.;
+      <i>Baetis</i> &rarr; Baetidae Gen. sp.); Phase 2 rules apply first<br>n = {h_genus}
+
+  - id: d_hfamily
+    type: decision
+    col: 3
+    row: 4
+    text: "Family or subfamily entry?"
+  - id: o_hfamily
+    type: otu_retained
+    col: 4
+    row: 4
+    text: "OTU at own level (e.g. Baetidae Gen. sp.)<br>n = {h_family}"
+
+  - id: d_haquatic
+    type: decision
+    col: 3
+    row: 5
+    text: "Order or above: in a truly aquatic group?"
+  - id: o_haq_retained
+    type: otu_retained
+    col: 4
+    row: 5
+    h: 96
+    text: >-
+      OTU at own level (truly aquatic: Bivalvia; Ephemeroptera, Plecoptera,
+      Odonata, Megaloptera, Trichoptera)<br>n = {h_orderplus_retained}
+  - id: o_haq_excluded
+    type: otu_excluded
+    col: 3
+    row: 6
+    text: "OTU at own level, excluded<br>n = {h_orderplus_excluded}"
+
+  - id: n_subspecies
+    type: note
+    col: 4
+    row: 6
+    text: "Subspecies inherit the OTU of their parent species"
+
+edges:
+  - {from: start,      to: p1,            from_side: bottom, to_side: top}
+  - {from: p1,         to: d_species,     from_side: bottom, to_side: top}
+  - {from: d_species,  to: d_steno,       from_side: bottom, to_side: top,  label: "Yes"}
+  - {from: d_species,  to: h_intro,       from_side: right,  to_side: left, label: "No"}
+
+  - {from: d_steno,    to: o_steno,       from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_steno,    to: d_exgroup,     from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_exgroup,  to: o_exgroup,     from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_exgroup,  to: d_naid,        from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_naid,     to: o_naid,        from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_naid,     to: d_oligo,       from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_oligo,    to: o_oligo,       from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_oligo,    to: d_neur,        from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_neur,     to: o_neur,        from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_neur,     to: d_indiv,       from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_indiv,    to: o_indiv,       from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_indiv,    to: p3,            from_side: bottom, to_side: top,  label: "No"}
+
+  - {from: p3,         to: d_feas,        from_side: bottom, to_side: top}
+  - {from: d_feas,     to: o_finer,       from_side: left,   to_side: top,  label: "Finer"}
+  - {from: d_feas,     to: o_equal,       from_side: bottom, to_side: top,  label: "Equal"}
+  - {from: d_feas,     to: o_gap,         from_side: right,  to_side: top,  label: "Coarser"}
+  - {from: o_finer,    to: r_otu,         from_side: bottom, to_side: left}
+  - {from: o_equal,    to: r_otu,         from_side: bottom, to_side: top}
+  - {from: o_gap,      to: r_otu,         from_side: bottom, to_side: right}
+
+  - {from: r_otu,      to: d_use,         from_side: bottom, to_side: top}
+  - {from: d_use,      to: o_use_yes,     from_side: bottom, to_side: top,  label: "Yes"}
+  - {from: d_use,      to: p_fallback,    from_side: right,  to_side: left, label: "No"}
+  - {from: p_fallback, to: d_fallback,    from_side: bottom, to_side: top}
+  - {from: d_fallback, to: o_fb_retained, from_side: bottom, to_side: top,  label: "Yes"}
+  - {from: d_fallback, to: o_fb_excluded, from_side: right,  to_side: left, label: "No"}
+
+  - {from: h_intro,    to: d_hgenus,      from_side: bottom, to_side: top}
+  - {from: d_hgenus,   to: o_hgenus,      from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_hgenus,   to: d_hfamily,     from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_hfamily,  to: o_hfamily,     from_side: right,  to_side: left, label: "Yes"}
+  - {from: d_hfamily,  to: d_haquatic,    from_side: bottom, to_side: top,  label: "No"}
+  - {from: d_haquatic, to: o_haq_retained, from_side: right, to_side: left, label: "Yes"}
+  - {from: d_haquatic, to: o_haq_excluded, from_side: bottom, to_side: top, label: "No"}
+
+# Worked examples, traced through the tree. For `check: trace` examples,
+# script 1 verifies specialists, agreement level, target and OTU against
+# script 2's decision trace; `outcome` must be the node the taxon ends in.
+examples:
+  - taxon: "<i>Dicranota bimaculata</i>"
+    lookup: "Dicranota bimaculata"
+    group: Diptera
+    check: trace
+    specialists: [s, o, g, g]
+    agreement: o
+    target: f
+    otu: "Pediciidae Gen. sp."
+    outcome: o_gap
+    path: >-
+      Species &rarr; no Phase 2 rule &rarr; target family (Diptera) &rarr;
+      agreement order is coarser &rarr; OTU at target, specialist_gap = TRUE
+
+  - taxon: "<i>Paraleptophlebia submarginata</i>"
+    lookup: "Paraleptophlebia submarginata"
+    group: Ephemeroptera
+    check: trace
+    specialists: [s, s, s, g]
+    agreement: g
+    target: f
+    otu: "Paraleptophlebia sp."
+    outcome: o_finer
+    path: >-
+      Species &rarr; no Phase 2 rule &rarr; target family (Ephemeroptera)
+      &rarr; agreement genus is finer &rarr; OTU at genus
+
+  - taxon: "<i>Leptophlebia marginata</i>"
+    lookup: "Leptophlebia marginata"
+    group: Ephemeroptera
+    check: trace
+    specialists: [s, s, f, g]
+    agreement: f
+    target: f
+    otu: "Leptophlebiidae Gen. sp."
+    outcome: o_equal
+    path: >-
+      Species &rarr; no Phase 2 rule &rarr; target family (Ephemeroptera)
+      &rarr; agreement family equals target &rarr; OTU at family
+
+  - taxon: "<i>Stylaria lacustris</i>"
+    lookup: "Stylaria lacustris"
+    group: Oligochaeta
+    check: trace
+    specialists: [s, sc, s, sc]
+    agreement: sc
+    target: f
+    otu: "Naididae Gen. sp."
+    outcome: o_naid
+    path: >-
+      Species &rarr; Phase 2: Naididae &rarr; OTU forced to family
+      (skips Phases 3&ndash;4)
+
+  - taxon: "Specimen identified only as &ldquo;Diptera&rdquo;"
+    lookup: "Diptera Gen. sp."
+    group: Diptera
+    check: hierarchy
+    otu: "Diptera Gen. sp."
+    excluded: true
+    outcome: o_fb_excluded
+    path: >-
+      Routine identification: not identified to family &rarr; fallback
+      Diptera Gen. sp. (order) &rarr; Diptera not truly aquatic &rarr;
+      excluded from EQR
+
+# Reference table (Table 2): minimum taxonomic level required by the LRMI
+# constituent metrics, per group.
+reference_table:
+  title: "Reference table &mdash; minimum level required by the LRMI metrics, by group"
+  columns: [Group, DSFI requirement, "BMWP/ASPT (all scored taxa)", Other metrics, Resulting minimum]
+  rows:
+    - group: Malacostraca
+      dsfi: "<i>Asellus</i>, <i>Gammarus</i> at <b>genus</b> (IG + diversity)"
+      bmwp: >-
+        Score 8: Astacidae [f]. Score 6: Gammaridae [f], Corophiidae [f], Crangonyctidae [f],
+        Niphargidae [f], Pontogammaridae [f]. Score 3: Asellidae [f].<br><span class="small">Excluded
+        taxa (Talitridae, non-Asellidae Isopoda, <i>Neomysis</i>/<i>Praunus</i>,
+        Crangonidae/Palaemonidae) &rarr; family level, excl. EQR.</span>
+      other: "%CrHi pools Malacostraca"
+      minimum: "<b>Genus</b> for <i>Asellus</i>, <i>Gammarus</i>; <b>family</b> for others"
+    - group: Gastropoda
+      dsfi: "<i>Ancylus</i>, <i>Lymnaea</i> at <b>genus</b> (diversity)"
+      bmwp: >-
+        Score 6: Viviparidae [f], Neritidae [f], Ancylidae [f], <i>Ancylus</i> [g], Acroloxidae [f].
+        Score 5: Hydrobiidae [f]. Score 3: Lymnaeidae [f], Physidae [f], Planorbidae [f],
+        Valvatidae [f], Bithyniidae [f].
+      other: "&mdash;"
+      minimum: "<b>Genus</b> for <i>Ancylus</i>, <i>Lymnaea</i>; <b>family</b> for others"
+    - group: Bivalvia
+      dsfi: "<i>Sphaerium</i> at <b>genus</b> (diversity)"
+      bmwp: "Score 6: Unionidae [f]. Score 3: Sphaeriidae [f]."
+      other: "&mdash;"
+      minimum: "<b>Genus</b> for <i>Sphaerium</i>; <b>family</b> for others"
+    - group: Plecoptera
+      dsfi: >-
+        13 genera at <b>genus</b> (IG1/IG2). Families: Leuctridae, Capniidae, Perlodidae,
+        Perlidae, Chloroperlidae (IG1); Taeniopterygidae, Nemouridae (IG2).
+      bmwp: >-
+        Score 10: Taeniopterygidae [f], Leuctridae [f], Perlodidae [f], Perlidae [f],
+        Chloroperlidae [f], Capniidae [f]. Score 7: Nemouridae [f].
+      other: "#DEP: species"
+      minimum: "At least <b>genus</b>"
+    - group: Ephemeroptera
+      dsfi: >-
+        8 families: Ephemeridae (IG1), Ametropodidae, Ephemerellidae, Heptageniidae,
+        Leptophlebiidae, Siphlonuridae (IG2), Caenidae (IG3), Baetidae (IG5).
+      bmwp: >-
+        Score 10: Siphlonuridae [f], Heptageniidae [f], Leptophlebiidae [f], Ephemerellidae [f],
+        Potamanthidae [f], Ephemeridae [f]. Score 7: Caenidae [f]. Score 4: Baetidae [f].
+      other: "#DEP: species"
+      minimum: "At least <b>family</b>"
+    - group: Trichoptera
+      dsfi: >-
+        <u>Case-bearing</u>: Beraeidae, Brachycentridae, Goeridae, Glossosomatidae,
+        Hydroptilidae, Leptoceridae, Lepidostomatidae, Limnephilidae, Molannidae,
+        Odontoceridae, Phryganeidae, Sericostomatidae. <u>Caseless</u>: Ecnomidae,
+        Hydropsychidae, Philopotamidae, Polycentropodidae, Psychomyiidae, Rhyacophilidae.
+      bmwp: >-
+        Score 10: Beraeidae [f], Brachycentridae [f], Goeridae [f], Lepidostomatidae [f],
+        Leptoceridae [f], Molannidae [f], Odontoceridae [f], Phryganeidae [f],
+        Sericostomatidae [f]. Score 8: Ecnomidae [f], Philopotamidae [f], Psychomyiidae [f].
+        Score 7: Apataniidae [f], Glossosomatidae [f], Limnephilidae [f], Polycentropodidae [f],
+        Rhyacophilidae [f]. Score 6: Hydroptilidae [f]. Score 5: Hydropsychidae [f].
+      other: "&mdash;"
+      minimum: "At least <b>family</b>"
+    - group: Coleoptera
+      dsfi: "<i>Elmis</i>, <i>Limnius</i>, <i>Elodes</i> at <b>genus</b> (IG1/IG2 + diversity)"
+      bmwp: >-
+        Score 5: Haliplidae [f], Hygrobiidae [f], Noteridae [f], Dytiscidae [f], Gyrinidae [f],
+        Hydrophilidae [f], Hydraenidae [f], Hydrochidae [f], Helophoridae [f], Georissidae [f],
+        Clambidae [f], Scirtidae [f], Helodidae [f], Dryopidae [f], Elmidae [f],
+        Chrysomelidae [f], Curculionidae [f].
+      other: "&mdash;"
+      minimum: "<b>Genus</b> for <i>Elmis</i>, <i>Limnius</i>, <i>Elodes</i>; <b>family</b> for others"
+    - group: Diptera
+      dsfi: >-
+        <i>Chironomus</i> at <b>genus</b>; Eristalinae at <b>subfamily</b>; Simuliidae,
+        Psychodidae, Chironomidae at <b>family</b>
+      bmwp: >-
+        Score 5: Tipulidae [f], Simuliidae [f], Limoniidae [f], Pediciidae [f],
+        Cylindrotomidae [f]. Score 2: Chironomidae [f].
+      other: "#DEP: family"
+      minimum: "<b>Family</b>; <b>genus</b> for <i>Chironomus</i>; <b>subfamily</b> for Eristalinae"
+    - group: Megaloptera
+      dsfi: "<i>Sialis</i> at <b>genus</b> (IG4 + neg. diversity)"
+      bmwp: "Score 4: Sialidae [f]."
+      other: "&mdash;"
+      minimum: "<b>Genus</b> for <i>Sialis</i>"
+    - group: Hirudinea
+      dsfi: "<i>Erpobdella</i>, <i>Helobdella</i> at <b>genus</b> (neg. diversity)"
+      bmwp: "Score 4: Piscicolidae [f]. Score 3: Glossiphoniidae [f], Hirudinidae [f], Erpobdellidae [f]."
+      other: "%CrHi pools Hirudinea"
+      minimum: "<b>Genus</b> for <i>Erpobdella</i>, <i>Helobdella</i>; <b>family</b> for others"
+    - group: Oligochaeta
+      dsfi: "Naididae at <b>family</b> (IG6; formerly Tubificidae); Oligochaeta &ge;100 individuals as precluder"
+      bmwp: "Score 1: Oligochaeta [sc], Naididae [f]."
+      other: "&mdash;"
+      minimum: "Naididae at <b>family</b>; others at <b>subclass</b>"
+    - group: Hemiptera
+      dsfi: "&mdash;"
+      bmwp: >-
+        Score 10: Aphelocheiridae [f]. Score 5: Nepidae [f], Naucoridae [f], Notonectidae [f],
+        Pleidae [f], Corixidae [f], Gerridae [f], Hydrometridae [f], Mesoveliidae [f].
+      other: "%EHP pools Hemiptera. Excluded families &rarr; family-level OTU."
+      minimum: "At least <b>family</b>"
+    - group: Odonata
+      dsfi: "&mdash;"
+      bmwp: >-
+        Score 8: Lestidae [f], Calopterygidae [f], Gomphidae [f], Cordulegastridae [f],
+        Aeshnidae [f], Corduliidae [f], Libellulidae [f]. Score 6: Coenagrionidae [f],
+        Platycnemididae [f].
+      other: "&mdash;"
+      minimum: "At least <b>family</b>"
+    - group: Turbellaria
+      dsfi: "Tricladida at <b>order</b> (pos. diversity)"
+      bmwp: "Score 5: Planariidae [f], Dendrocoelidae [f], Dugesiidae [f]."
+      other: "&mdash;"
+      minimum: "At least <b>family</b>"
+    - group: Lepidoptera
+      dsfi: "&mdash;"
+      bmwp: "&mdash;"
+      other: "&mdash;"
+      minimum: "At least <b>family</b><sup>a</sup>"
+    - group: Neuroptera
+      dsfi: "&mdash;"
+      bmwp: "&mdash;"
+      other: "&mdash;"
+      minimum: "At least <b>family</b> (Phase 2)"
+  footnotes:
+    - >-
+      [f] family, [g] genus, [sc] subclass. Minimum levels are floors, not ceilings: if
+      all four specialists can identify a taxon to a finer level, the finer level is kept
+      (Phase 4).
+    - >-
+      <sup>a</sup> Lepidoptera are not used directly by any LRMI metric. A family-level
+      minimum was nevertheless set because order-level Lepidoptera entries are excluded
+      under the truly aquatic rule; an order-level OTU would therefore remove aquatic
+      Crambidae and Pyralidae from the total sample abundance, which forms the denominator
+      of %EHP&ndash;%CrHi.

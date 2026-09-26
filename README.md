@@ -17,7 +17,9 @@ working inputs:
 
 ```
 Operational Taxalist (OTL)/
-└── Supplement 1 - Operational taxalist.xlsx
+├── Supplement 1 - Operational taxalist.xlsx   The taxalist (Supplement 1)
+├── OTL_decision_tree.yaml                     The OTU decision tree (Supplement 2), machine-readable
+└── OTL_id_registry.csv                        Every OTL_id ever issued (maintained by script 2)
 ```
 
 This workbook is the authoritative taxonomic reference for the project
@@ -26,18 +28,18 @@ sheets:
 
 | Sheet                 | Rows  | Contents                                                                 |
 |-----------------------|------:|--------------------------------------------------------------------------|
-| `Metadata`            |   129 | Data dictionary: every column of every sheet, with description and type   |
-| `OTL`                 | 3,885 | The operational taxa list itself — the core reference                     |
+| `Metadata`            |   141 | Data dictionary: every column of every sheet, with description and type   |
+| `OTL`                 | 4,241 | The operational taxa list itself — the core reference                     |
 | `Source_references`   |    46 | Full bibliographic details for each source cited in `OTL.source`          |
 | `Synonyms`            | 3,885 | GBIF-derived synonymy, up to 100 synonyms per taxon, with usage keys      |
-| `Excluded_taxa`       |   209 | Taxa excluded from OTU assignment                                         |
-| `OTU_heirarchy`       | 1,258 | Resulting operational taxonomic units and their full taxonomic hierarchy  |
+| `Excluded_taxa`       |   218 | Taxa excluded from OTU assignment                                         |
+| `OTU_heirarchy`       | 1,274 | Resulting operational taxonomic units and their full taxonomic hierarchy  |
 | `Specialist_taxalist` | 2,657 | Determinations from four specialists, with agreement flags               |
 | `BMWP_scores`         |   105 | BMWP scores as adapted for Lithuania, mapped to OTL names                 |
 | `Example_dataset`     | 4,874 | Worked example with synthetic abundances, raw name → OTL-standardised name|
 
 **The `Metadata` sheet is the workbook's own data dictionary** — it
-documents all 129 columns across the other eight sheets, giving each
+documents every column of the other eight sheets, giving each
 column's name, a plain-language description, and its data type. Anyone
 reusing the OTL should start there.
 
@@ -55,6 +57,28 @@ and genetic-barcode availability (`barcode_available`,
 reads three of these sheets — `OTL`, `Excluded_taxa` and
 `Specialist_taxalist`. The remaining six are reference and
 documentation for users of the taxalist rather than pipeline inputs.
+
+OTU identifiers (`OTL_id`) are issued by script 2, not by hand. The
+script keeps every identifier it has ever issued in
+`OTL_id_registry.csv`: existing OTUs keep their identifier, new OTUs
+receive the next free one, and identifiers of OTUs that no longer occur
+are retired and never reused. Script 2 writes the identifiers (and the
+`specialist_gap` flag) for every row of the `OTL` sheet to the
+`OTL_ids_for_supplement` sheet of its output, ready to paste into the
+workbook, and reports any row where the workbook disagrees.
+
+### The decision tree (Supplement 2)
+
+The rules used to assign OTUs are defined in
+[`OTL_decision_tree.yaml`](Operational%20Taxalist%20(OTL)/OTL_decision_tree.yaml),
+a machine-readable description of the flowchart: its boxes, arrows,
+worked examples and the reference table of minimum levels required by
+the LRMI metrics. Script 1 draws Supplement 2 from this file
+(`Outputs/1_OTL_decision_tree_v19.html` / `.pdf`) and fills in the
+branch counts from the outputs of scripts 2 and 11. It stops with an
+error if the counts do not add up or if a worked example disagrees with
+the OTU assigned by script 2, so the figure cannot drift from the code.
+To change the tree, edit the YAML file and re-run script 1.
 
 > **Note:** in `Example_dataset`, the `note` column refers to
 > colour-highlighted cells (green = abundances requiring aggregation,
@@ -81,15 +105,14 @@ produce that release's results.
 Each script's outputs use the producing script's numeric prefix
 (e.g. script 6 writes `Outputs/6_LRMI_with_comparison.xlsx`).
 
-Two files in `Outputs/` are not script-generated and are kept as
-manual QA artefacts: `3_DSFI_value_checker.xlsx` and
-`1_OTL_decision_tree_v18.pdf`.
+One file in `Outputs/` is not script-generated and is kept as a
+manual QA artefact: `3_DSFI_value_checker.xlsx`.
 
 ## Pipeline at a glance
 
 | Stage | Script                                        | Purpose                                                        |
 |------:|-----------------------------------------------|----------------------------------------------------------------|
-| 1     | `1_generate_decision_tree_html_v18.R`         | Render the OTL decision-tree HTML from editable text blocks    |
+| 1     | `1_generate_decision_tree_html_v19.R`         | Draw the OTU decision tree (Supplement 2) from its YAML file   |
 | 2     | `2_OTU_assignment_v23.R`                      | Apply the decision tree to assign an OTU to every taxon        |
 | 3     | `3_DSFI_calculator_v15.R`                     | Compute the Danish Stream Fauna Index (DSFI) per sample        |
 | 4     | `4_calculation_of_taxonomic_indices.R`        | Compute BMWP / ASPT, group richness/abundance, compound indices|
@@ -108,7 +131,7 @@ repository. To run it end-to-end you also need:
 
 | File                                              | Needed by      | Where to get it |
 |---------------------------------------------------|----------------|-----------------|
-| `Inputs/All_sites_macroinvertebrate_data_long.xlsx` | Scripts 3, 4, 5, 8 | *Not in this repository* — see below |
+| `Inputs/All_sites_macroinvertebrate_data_long.xlsx` | Scripts 3, 4, 5, 8, 11 | *Not in this repository* — see below |
 | UETK geodatabase (`UETK_2024-05-02.gdb`)            | Script 7 (maps)| Lithuanian national water-body register (UETK) |
 
 The raw macroinvertebrate dataset (~44 MB) is held outside the
@@ -141,7 +164,9 @@ circulated with the manuscript rather than through this repository.
 3. Source the scripts in numeric order (1 → 11). Each script reads
    either from `Inputs/`, from the OTL workbook, or from an earlier
    script's output in `Outputs/`, and writes its own outputs back to
-   `Outputs/` (or `Plots/`).
+   `Outputs/` (or `Plots/`). Script 1 is the exception: it takes its
+   branch counts from the outputs of scripts 2 and 11, so after changing
+   the taxalist, re-run script 1 last.
 
 ### Year scope
 
@@ -154,8 +179,9 @@ conflate methodological era with taxonomic-standardisation effects.
 
 `tidyverse`, `readxl`, `writexl`, `vegan`, `reshape2`, `ggplot2`, `sf`,
 `ggrepel`, `cowplot`, `viridis`, `rnaturalearth`, `rnaturalearthdata`,
-`rgeoboundaries`, `ggspatial`, `pacman` (used only for end-of-script
-workspace clean-up).
+`rgeoboundaries`, `ggspatial`, `yaml` and `chromote` (script 1; the
+PDF is printed with headless Chrome), `pacman` (used only for
+end-of-script workspace clean-up).
 
 R version **4.5.2**:
 
