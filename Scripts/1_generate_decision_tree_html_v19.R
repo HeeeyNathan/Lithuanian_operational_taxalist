@@ -4,7 +4,7 @@
 #
 # Draws the OTU decision tree (Supplement 2) as a traversable flowchart from
 # the machine-readable specification
-#     Operational Taxalist (OTL)/OTL_decision_tree.yaml
+#     Inputs/OTL_decision_tree.yaml
 # To change the tree (text, boxes, arrows, examples, reference table), edit
 # the YAML file and re-run this script. Nothing about the tree's content is
 # hard-coded here.
@@ -39,7 +39,7 @@ library(yaml)
 library(readxl)
 library(dplyr)
 
-spec_file       <- "Operational Taxalist (OTL)/OTL_decision_tree.yaml"
+spec_file       <- "Inputs/OTL_decision_tree.yaml"
 otu_output_file <- "Outputs/2_OTU_assignments_v23.xlsx"
 gap_output_file <- "Outputs/11_feasibility_gap_check.xlsx"
 

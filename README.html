@@ -372,9 +372,7 @@ whether OTL standardisation materially alters the assessment.</p>
 in its own top-level folder, deliberately kept separate from the
 pipeline’s working inputs:</p>
 <pre><code>Operational Taxalist (OTL)/
-├── Supplement 1 - Operational taxalist.xlsx   The taxalist (Supplement 1)
-├── OTL_decision_tree.yaml                     The OTU decision tree (Supplement 2), machine-readable
-└── OTL_id_registry.csv                        Every OTL_id ever issued (maintained by script 2)</code></pre>
+└── Supplement 1 - Operational taxalist.xlsx</code></pre>
 <p>This workbook is the authoritative taxonomic reference for the
 project and the document most likely to be revised in future. It
 contains nine sheets:</p>
@@ -466,16 +464,16 @@ remaining six are reference and documentation for users of the taxalist
 rather than pipeline inputs.</p>
 <p>OTU identifiers (<code>OTL_id</code>) are issued by script 2, not by
 hand. The script keeps every identifier it has ever issued in
-<code>OTL_id_registry.csv</code>: existing OTUs keep their identifier,
-new OTUs receive the next free one, and identifiers of OTUs that no
-longer occur are retired and never reused. Script 2 writes the
+<code>Inputs/OTL_id_registry.csv</code>: existing OTUs keep their
+identifier, new OTUs receive the next free one, and identifiers of OTUs
+that no longer occur are retired and never reused. Script 2 writes the
 identifiers (and the <code>specialist_gap</code> flag) for every row of
 the <code>OTL</code> sheet to the <code>OTL_ids_for_supplement</code>
 sheet of its output, ready to paste into the workbook, and reports any
 row where the workbook disagrees.</p>
 <div id="the-decision-tree-supplement-2" class="section level3">
 <h3>The decision tree (Supplement 2)</h3>
-<p>The rules used to assign OTUs are defined in <a href="Operational%20Taxalist%20(OTL)/OTL_decision_tree.yaml"><code>OTL_decision_tree.yaml</code></a>,
+<p>The rules used to assign OTUs are defined in <a href="Inputs/OTL_decision_tree.yaml"><code>Inputs/OTL_decision_tree.yaml</code></a>,
 a machine-readable description of the flowchart: its boxes, arrows,
 worked examples and the reference table of minimum levels required by
 the LRMI metrics. Script 1 draws Supplement 2 from this file
@@ -503,7 +501,8 @@ produce that release’s results.</p>
 <pre><code>.
 ├── Operational Taxalist (OTL)/  The OTL workbook (see above)
 ├── Scripts/                     R scripts, numbered 1–11
-├── Inputs/                      Comparison inputs (see Data availability)
+├── Inputs/                      Pipeline inputs: decision-tree specification, OTL_id
+│                                registry and comparison data (see Data availability)
 ├── Outputs/                     Script-generated tables (script N → N_*.xlsx)
 ├── Plots/                       Script-generated figures
 └── Calculating OTL indices.Rproj</code></pre>

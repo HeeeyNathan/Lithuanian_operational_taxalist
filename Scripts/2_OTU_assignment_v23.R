@@ -9,7 +9,7 @@
 #
 # Revision during manuscript review (2026-09):
 #   - OTL_id is now stable across runs and owned by the script: IDs are kept
-#     in Operational Taxalist (OTL)/OTL_id_registry.csv (seeded from the IDs
+#     in Inputs/OTL_id_registry.csv (seeded from the IDs
 #     published with the submitted OTL). Existing OTU names keep their ID,
 #     new names get IDs after the highest ever issued, and IDs of OTUs that
 #     no longer occur are retired, never reused. Previously IDs were
@@ -209,11 +209,11 @@
 #         - Specialist_taxalist sheet (species assessments)
 #         - OTL sheet (full taxalist)
 #         - Excluded_taxa sheet (EQR exclusion source of truth)
-#         Operational Taxalist (OTL)/OTL_id_registry.csv (OTL_id registry)
+#         Inputs/OTL_id_registry.csv (OTL_id registry)
 # Output: Outputs/2_OTU_assignments_v23.xlsx
 #
 # Key decisions (the decision tree is documented in
-# Operational Taxalist (OTL)/OTL_decision_tree.yaml, drawn by script 1):
+# Inputs/OTL_decision_tree.yaml, drawn by script 1):
 #   - Naididae (formerly Tubificidae) at family; other Oligochaeta at subclass
 #   - Malacostraca metric group (was "Crustacea"); MAXILLOPODA handled separately
 #   - Eristalinae genera identified from OTL_final subfamily column
@@ -254,7 +254,7 @@ input_file  <- "Operational Taxalist (OTL)/Supplement 1 - Operational taxalist.x
 output_file <- "Outputs/2_OTU_assignments_v23.xlsx"
 # OTL_id registry: the script's permanent record of every OTL_id ever issued
 # (never edited by hand). Read and updated on every run.
-id_registry_file <- "Operational Taxalist (OTL)/OTL_id_registry.csv"
+id_registry_file <- "Inputs/OTL_id_registry.csv"
 
 # Taxonomic level codes and their rank (1 = finest, 8 = coarsest)
 LEVEL_RANK <- c(s = 1, g = 2, sf = 3, f = 4, o = 5, sc = 6, c = 7, p = 8)

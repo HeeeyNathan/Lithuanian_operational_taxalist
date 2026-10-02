@@ -17,9 +17,7 @@ working inputs:
 
 ```
 Operational Taxalist (OTL)/
-├── Supplement 1 - Operational taxalist.xlsx   The taxalist (Supplement 1)
-├── OTL_decision_tree.yaml                     The OTU decision tree (Supplement 2), machine-readable
-└── OTL_id_registry.csv                        Every OTL_id ever issued (maintained by script 2)
+└── Supplement 1 - Operational taxalist.xlsx
 ```
 
 This workbook is the authoritative taxonomic reference for the project
@@ -60,7 +58,7 @@ documentation for users of the taxalist rather than pipeline inputs.
 
 OTU identifiers (`OTL_id`) are issued by script 2, not by hand. The
 script keeps every identifier it has ever issued in
-`OTL_id_registry.csv`: existing OTUs keep their identifier, new OTUs
+`Inputs/OTL_id_registry.csv`: existing OTUs keep their identifier, new OTUs
 receive the next free one, and identifiers of OTUs that no longer occur
 are retired and never reused. Script 2 writes the identifiers (and the
 `specialist_gap` flag) for every row of the `OTL` sheet to the
@@ -70,7 +68,7 @@ workbook, and reports any row where the workbook disagrees.
 ### The decision tree (Supplement 2)
 
 The rules used to assign OTUs are defined in
-[`OTL_decision_tree.yaml`](Operational%20Taxalist%20(OTL)/OTL_decision_tree.yaml),
+[`Inputs/OTL_decision_tree.yaml`](Inputs/OTL_decision_tree.yaml),
 a machine-readable description of the flowchart: its boxes, arrows,
 worked examples and the reference table of minimum levels required by
 the LRMI metrics. Script 1 draws Supplement 2 from this file
@@ -96,7 +94,8 @@ produce that release's results.
 .
 ├── Operational Taxalist (OTL)/  The OTL workbook (see above)
 ├── Scripts/                     R scripts, numbered 1–11
-├── Inputs/                      Comparison inputs (see Data availability)
+├── Inputs/                      Pipeline inputs: decision-tree specification, OTL_id
+│                                registry and comparison data (see Data availability)
 ├── Outputs/                     Script-generated tables (script N → N_*.xlsx)
 ├── Plots/                       Script-generated figures
 └── Calculating OTL indices.Rproj
